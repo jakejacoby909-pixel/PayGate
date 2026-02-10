@@ -844,6 +844,8 @@ export default function LandingPage() {
           <div style={{ display: "flex", gap: 24, fontSize: "0.82rem" }}>
             <Link href="/builder" style={{ color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}>Builder</Link>
             <Link href="/dashboard" style={{ color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}>Dashboard</Link>
+            <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}>Terms</Link>
+            <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none", transition: "color 0.15s" }}>Privacy</Link>
           </div>
           <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>
             &copy; {new Date().getFullYear()} PayGate. Powered by Stripe.
