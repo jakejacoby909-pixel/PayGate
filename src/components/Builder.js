@@ -42,6 +42,8 @@ export default function Builder({ existingConfig }) {
   const [autoSaved, setAutoSaved] = useState(false);
   const [prevTab, setPrevTab] = useState("product");
   const [hasChanges, setHasChanges] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileView, setMobileView] = useState("form");
   const imageInputRef = useRef(null);
   const autoSaveTimer = useRef(null);
 
@@ -82,6 +84,14 @@ export default function Builder({ existingConfig }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   });
+
+  // Mobile detection
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Auto-save to localStorage draft
   useEffect(() => {
@@ -210,16 +220,46 @@ export default function Builder({ existingConfig }) {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--background)" }}>
+    <div className="builder-layout" style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--background)" }}>
+      {/* Mobile Toggle */}
+      {isMobile && (
+        <div className="builder-mobile-toggle" style={{ display: "flex" }}>
+          <button
+            className={mobileView === "form" ? "active" : ""}
+            onClick={() => setMobileView("form")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            Edit
+          </button>
+          <button
+            className={mobileView === "preview" ? "active" : ""}
+            onClick={() => setMobileView("preview")}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Preview
+          </button>
+        </div>
+      )}
+
       {/* Left Panel — Form */}
-      <div style={{
-        width: 420,
-        minWidth: 420,
-        borderRight: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        background: "var(--surface)",
-      }}>
+      <div
+        className={`builder-form-panel${isMobile && mobileView !== "form" ? " mobile-hidden" : ""}`}
+        style={{
+          width: isMobile ? "100%" : 420,
+          minWidth: isMobile ? "unset" : 420,
+          borderRight: isMobile ? "none" : "1px solid var(--border)",
+          display: "flex",
+          flexDirection: "column",
+          background: "var(--surface)",
+          overflow: isMobile ? "auto" : "hidden",
+        }}
+      >
         {/* Header */}
         <div style={{
           padding: "16px 20px",
@@ -1088,7 +1128,10 @@ export default function Builder({ existingConfig }) {
       </div>
 
       {/* Right Panel — Preview */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--background)" }}>
+      <div
+        className={`builder-preview-panel${isMobile && mobileView !== "preview" ? " mobile-hidden" : ""}`}
+        style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--background)" }}
+      >
         {/* Preview toolbar */}
         <div style={{
           padding: "10px 20px",

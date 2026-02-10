@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { id: "create", label: "Create Page", href: "/builder", icon: "M12 5v14M5 12h14", accent: true },
 ];
 
-function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen }) {
+function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen, isMobile }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
@@ -29,7 +29,7 @@ function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen }) {
   return (
     <>
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {sidebarOpen && isMobile && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
@@ -54,7 +54,10 @@ function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen }) {
         display: "flex",
         flexDirection: "column",
         zIndex: 200,
-        transform: mounted ? "translateX(0)" : "translateX(-100%)",
+        transform: isMobile
+          ? (sidebarOpen ? "translateX(0)" : "translateX(-100%)")
+          : (mounted ? "translateX(0)" : "translateX(-100%)"
+        ),
         transition: "transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
       }}>
         {/* Logo */}
@@ -262,6 +265,18 @@ function DashboardContent() {
   const [sortBy, setSortBy] = useState("newest");
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+    };
+    check();
+    if (window.innerWidth <= 768) setSidebarOpen(false);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -370,13 +385,14 @@ function DashboardContent() {
         onSignOut={signOut}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        isMobile={isMobile}
       />
 
       {/* Main Content */}
-      <div style={{ flex: 1, marginLeft: 260, minHeight: "100vh", transition: "margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : 260, minHeight: "100vh", transition: "margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1)" }}>
         {/* Top bar */}
         <header style={{
-          padding: "16px 32px",
+          padding: isMobile ? "12px 16px" : "16px 32px",
           borderBottom: "1px solid var(--border)",
           background: "var(--surface)",
           position: "sticky",
@@ -386,12 +402,26 @@ function DashboardContent() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 12,
         }}>
-          <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {isMobile && (
+              <button
+                className="dash-hamburger"
+                onClick={() => setSidebarOpen(true)}
+                style={{ display: "flex" }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+            )}
+            <div>
             <h1 style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0, letterSpacing: "-0.02em" }}>Dashboard</h1>
             <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0, marginTop: 2 }}>
               Manage your checkout pages
             </p>
+            </div>
           </div>
           <Link href="/builder" className="btn-primary ripple-btn" style={{ padding: "8px 20px", fontSize: "0.85rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -401,11 +431,11 @@ function DashboardContent() {
           </Link>
         </header>
 
-        <div style={{ padding: "28px 32px", maxWidth: 1000 }}>
+        <div style={{ padding: isMobile ? "16px" : "28px 32px", maxWidth: 1000 }}>
           {/* Stats Cards */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+            gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(190px, 1fr))",
             gap: 14,
             marginBottom: 32,
           }}>
@@ -596,13 +626,14 @@ function DashboardContent() {
                   key={page.id}
                   className="card-glow"
                   style={{
-                    padding: "16px 20px",
+                    padding: isMobile ? "14px" : "16px 20px",
                     borderRadius: 14,
                     background: "var(--surface)",
                     border: "1px solid var(--border)",
                     display: "flex",
-                    alignItems: "center",
-                    gap: 16,
+                    alignItems: isMobile ? "flex-start" : "center",
+                    flexDirection: isMobile ? "column" : "row",
+                    gap: isMobile ? 12 : 16,
                     opacity: mounted ? 1 : 0,
                     transform: mounted ? "translateY(0)" : "translateY(12px)",
                     transition: `all 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${i * 60}ms`,
@@ -648,7 +679,7 @@ function DashboardContent() {
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
                     {[
                       { title: "Edit", href: `/builder?id=${page.id}`, icon: "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z", isLink: true },
                       { title: "View", href: `/checkout/${page.id}`, icon: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3", isLink: true, external: true },

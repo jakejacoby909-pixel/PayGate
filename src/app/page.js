@@ -56,6 +56,7 @@ const TRUST_LOGOS = ["Stripe", "SSL", "PCI DSS", "GDPR", "SOC 2", "256-bit"];
 
 export default function LandingPage() {
   const [showMoneyRain, setShowMoneyRain] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, configured, signOut, loading } = useAuth();
 
   useEffect(() => {
@@ -115,7 +116,15 @@ export default function LandingPage() {
             </div>
             <span style={{ fontWeight: 800, fontSize: "1.15rem", letterSpacing: "-0.02em" }}>PayGate</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Hamburger - mobile only */}
+          <button className="nav-hamburger" onClick={() => setMobileMenuOpen(true)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
+          {/* Desktop nav links */}
+          <div className="nav-desktop-links" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {!loading && user && isAdmin(user) && (
               <Link
                 href="/admin"
@@ -191,6 +200,38 @@ export default function LandingPage() {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)}>
+          <button className="mobile-nav-close" onClick={() => setMobileMenuOpen(false)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          {!loading && user && isAdmin(user) && (
+            <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</Link>
+          )}
+          {!loading && user ? (
+            <>
+              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
+              <button className="mobile-nav-link" onClick={() => { signOut(); setMobileMenuOpen(false); }}>Sign Out</button>
+            </>
+          ) : !loading && (
+            <>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
+            </>
+          )}
+          <Link
+            href="/builder"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{ background: "var(--primary)", borderRadius: 9999, marginTop: 12 }}
+          >
+            Get Started
+          </Link>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="hero-gradient" style={{
@@ -290,7 +331,7 @@ export default function LandingPage() {
 
           {/* Animated Stats */}
           <div
-            className="animate-fade-in-up delay-400"
+            className="animate-fade-in-up delay-400 hero-stats-row"
             style={{
               display: "flex",
               justifyContent: "center",
@@ -365,7 +406,7 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Realistic checkout mockup */}
-            <div style={{
+            <div className="hero-mockup-area" style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -431,7 +472,7 @@ export default function LandingPage() {
               </div>
 
               {/* Floating badges */}
-              <div className="animate-float-delayed" style={{
+              <div className="animate-float-delayed hero-floating-badge" style={{
                 position: "absolute",
                 top: 40,
                 right: 60,
@@ -448,7 +489,7 @@ export default function LandingPage() {
               }}>
                 <span style={{ color: "#16a34a" }}>2,847 sold</span>
               </div>
-              <div className="animate-float" style={{
+              <div className="animate-float hero-floating-badge" style={{
                 position: "absolute",
                 bottom: 60,
                 left: 40,
@@ -470,7 +511,7 @@ export default function LandingPage() {
                 ))}
                 <span style={{ marginLeft: 2, color: "#666" }}>4.9</span>
               </div>
-              <div className="animate-float-delayed" style={{
+              <div className="animate-float-delayed hero-floating-badge" style={{
                 position: "absolute",
                 bottom: 40,
                 right: 80,
@@ -815,7 +856,7 @@ export default function LandingPage() {
         position: "relative",
         zIndex: 1,
       }}>
-        <div style={{
+        <div className="footer-inner" style={{
           maxWidth: 1000,
           margin: "0 auto",
           display: "flex",
@@ -854,7 +895,7 @@ export default function LandingPage() {
       </footer>
 
       {/* Social Proof Indicator */}
-      <div style={{
+      <div className="social-proof-fixed" style={{
         position: "fixed",
         bottom: 20,
         left: 20,
