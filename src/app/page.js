@@ -341,10 +341,10 @@ export default function LandingPage() {
             }}
           >
             {[
-              { value: "10K+", label: "Pages Created" },
+              { value: "200+", label: "Pages Created" },
               { value: "99.9%", label: "Uptime" },
               { value: "<2s", label: "Load Time" },
-              { value: "50+", label: "Countries" },
+              { value: "12+", label: "Countries" },
             ].map((stat) => (
               <div key={stat.label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "1.8rem", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--foreground)" }}>
@@ -487,7 +487,7 @@ export default function LandingPage() {
                 alignItems: "center",
                 gap: 6,
               }}>
-                <span style={{ color: "#16a34a" }}>2,847 sold</span>
+                <span style={{ color: "#16a34a" }}>147 sold</span>
               </div>
               <div className="animate-float hero-floating-badge" style={{
                 position: "absolute",
@@ -921,7 +921,7 @@ export default function LandingPage() {
           display: "inline-block",
           animation: "pulseDot 2s ease-out infinite",
         }} />
-        127 pages created today
+        14 pages created today
       </div>
     </div>
   );
