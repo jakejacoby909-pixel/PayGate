@@ -67,7 +67,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="5. Platform Fees">
-          <p>PayGate charges a transaction fee of 3% on each successful payment processed through checkout pages created on the platform. This fee is in addition to any fees charged by Stripe or other third-party payment processors.</p>
+          <p>PayGate charges a transaction fee of 5% on each successful payment processed through checkout pages created on the platform. This fee is in addition to any fees charged by Stripe or other third-party payment processors.</p>
           <p>We reserve the right to modify our fee structure with 30 days&apos; prior notice. Fee changes will not apply retroactively to transactions already completed.</p>
         </Section>
 

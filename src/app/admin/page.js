@@ -80,7 +80,7 @@ function AdminDashboard() {
   }
 
   function exportCSV() {
-    const headers = ["Date", "Customer Email", "Product", "Amount", "Fee (3%)", "Status"];
+    const headers = ["Date", "Customer Email", "Product", "Amount", "Fee (5%)", "Status"];
     const rows = transactions.map((t) => [
       new Date(t.date).toLocaleDateString(),
       t.email,
@@ -164,7 +164,7 @@ function AdminDashboard() {
     { label: "Total Users", value: stats.users, icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2 M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75", color: "#3b82f6", bg: "rgba(59,130,246,0.08)", format: (v) => v },
     { label: "Total Transactions", value: stats.transactions, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", color: "#8b5cf6", bg: "rgba(139,92,246,0.08)", format: (v) => v },
     { label: "Total Revenue", value: stats.revenue, icon: "M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6", color: "#22c55e", bg: "rgba(34,197,94,0.08)", format: (v) => "$" + (v / 100).toFixed(2) },
-    { label: "Platform Fees (3%)", value: stats.fees, icon: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01", color: "#f59e0b", bg: "rgba(245,158,11,0.08)", format: (v) => "$" + (v / 100).toFixed(2) },
+    { label: "Platform Fees (5%)", value: stats.fees, icon: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01", color: "#f59e0b", bg: "rgba(245,158,11,0.08)", format: (v) => "$" + (v / 100).toFixed(2) },
   ];
 
   return (
@@ -332,7 +332,7 @@ function AdminDashboard() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    {["Date", "Customer", "Product", "Amount", "Fee (3%)", "Status"].map((h) => (
+                    {["Date", "Customer", "Product", "Amount", "Fee (5%)", "Status"].map((h) => (
                       <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                         {h}
                       </th>

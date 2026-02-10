@@ -31,7 +31,7 @@ export async function POST(request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const amount = session.amount_total || 0;
-    const platformFee = Math.round(amount * 0.03);
+    const platformFee = Math.round(amount * 0.05);
     const customerEmail = session.customer_details?.email || session.customer_email || "";
     const pageId = session.metadata?.pageId || "";
     const productName = session.metadata?.productName || "";

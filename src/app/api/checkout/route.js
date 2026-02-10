@@ -38,7 +38,7 @@ export async function POST(request) {
       metadata: {
         pageId: pageId || "",
         productName: productName || "Product",
-        platformFeePercent: "3",
+        platformFeePercent: "5",
       },
     });
 
