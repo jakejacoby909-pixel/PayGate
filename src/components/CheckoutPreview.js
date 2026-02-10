@@ -75,6 +75,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
 
   // New feature state
   const [showExitIntent, setShowExitIntent] = useState(false);
+  const [exitDiscountApplied, setExitDiscountApplied] = useState(false);
   const [bumpChecked, setBumpChecked] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
@@ -145,7 +146,9 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
 
   const c = config || {};
   const price = parseFloat(c.price) || 0;
-  const discount = couponApplied ? (c.couponDiscount || 0) : 0;
+  const couponDiscountPct = couponApplied ? (c.couponDiscount || 0) : 0;
+  const exitDiscountPct = exitDiscountApplied ? (c.exitIntentDiscount || 10) : 0;
+  const discount = Math.min(couponDiscountPct + exitDiscountPct, 100);
   const discountedPrice = price * (1 - discount / 100);
   const bumpPrice = parseFloat(c.bumpOfferPrice) || 0;
   const subtotal = discountedPrice * quantity;
@@ -626,7 +629,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
               </span>
             )}
           </div>
-          {couponApplied && discount > 0 && (
+          {discount > 0 && (
             <span
               className="animate-scale-in"
               style={{
@@ -1095,7 +1098,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
             </p>
             <button
               type="button"
-              onClick={() => setShowExitIntent(false)}
+              onClick={() => { setExitDiscountApplied(true); setShowExitIntent(false); }}
               style={{
                 width: "100%",
                 padding: "14px 24px",

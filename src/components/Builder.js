@@ -16,7 +16,8 @@ import {
   BACKGROUND_PATTERNS,
   getCheckoutUrl,
 } from "@/lib/utils";
-import { savePage } from "@/lib/storage";
+import { savePage, syncPageToSupabase } from "@/lib/storage";
+import { useAuth } from "@/components/AuthProvider";
 
 const AUTO_SAVE_DELAY = 3000;
 
@@ -30,6 +31,7 @@ const TABS = [
 export default function Builder({ existingConfig }) {
   const router = useRouter();
   const toast = useToast();
+  const { user } = useAuth();
   const [config, setConfig] = useState(() => existingConfig || getDefaultPageConfig());
   const [activeTab, setActiveTab] = useState("product");
   const [previewDevice, setPreviewDevice] = useState("desktop");
@@ -124,7 +126,12 @@ export default function Builder({ existingConfig }) {
     const pageConfig = { ...config, id };
     savePage(pageConfig);
 
-    toast.success("Page created successfully!");
+    // Sync to Supabase if user is authenticated
+    if (user?.id) {
+      syncPageToSupabase(pageConfig, user.id).catch(() => {});
+    }
+
+    toast.success(config.id ? "Page updated!" : "Page created successfully!");
     setSaving(false);
     setConfig(pageConfig);
     setHasChanges(false);
