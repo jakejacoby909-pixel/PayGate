@@ -16,7 +16,20 @@ function BuilderWithParams() {
 export default function BuilderPage() {
   return (
     <ToastProvider>
-      <Suspense>
+      <Suspense fallback={
+        <div style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--background)",
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div className="spinner" style={{ width: 32, height: 32, margin: "0 auto 12px" }} />
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Loading builder...</p>
+          </div>
+        </div>
+      }>
         <BuilderWithParams />
       </Suspense>
     </ToastProvider>

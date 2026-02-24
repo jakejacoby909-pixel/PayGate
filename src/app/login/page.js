@@ -1,11 +1,14 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 import { useAuth } from "@/components/AuthProvider";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, configured } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -84,7 +87,7 @@ export default function LoginPage() {
       if (result.error) {
         setError(result.error.message);
       } else {
-        router.push("/dashboard");
+        router.push(redirectTo);
       }
     } catch (err) {
       setError(err.message || "An error occurred");
@@ -292,10 +295,10 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Continue without account */}
+        {/* Back to home */}
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <Link
-            href="/builder"
+            href="/"
             style={{
               fontSize: "0.85rem",
               color: "var(--muted)",
@@ -304,10 +307,22 @@ export default function LoginPage() {
               transition: "color 0.15s",
             }}
           >
-            Continue without account
+            Back to home
           </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--background)" }}>
+        <div className="spinner" style={{ width: 32, height: 32 }} />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

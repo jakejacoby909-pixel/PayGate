@@ -585,7 +585,7 @@ export default function PricingPage() {
       {/* Footer */}
       <footer style={{ borderTop: "1px solid var(--border)", padding: "32px 24px", textAlign: "center" }}>
         <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>
-          &copy; {new Date().getFullYear()} PayGate. Powered by Stripe.
+          &copy; {new Date().getFullYear()} Jacoby Digital LLC. Powered by Stripe.
         </p>
       </footer>
     </div>

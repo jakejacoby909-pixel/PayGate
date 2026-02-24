@@ -18,6 +18,7 @@ import {
 } from "@/lib/utils";
 import { savePage, syncPageToSupabase } from "@/lib/storage";
 import { useAuth } from "@/components/AuthProvider";
+import { hasFeature, hasTemplate, PREMIUM_TEMPLATES } from "@/lib/plans";
 
 const AUTO_SAVE_DELAY = 3000;
 
@@ -31,7 +32,8 @@ const TABS = [
 export default function Builder({ existingConfig }) {
   const router = useRouter();
   const toast = useToast();
-  const { user } = useAuth();
+  const { user, plan, signOut } = useAuth();
+  const isPro = plan === "pro";
   const [config, setConfig] = useState(() => existingConfig || getDefaultPageConfig());
   const [activeTab, setActiveTab] = useState("product");
   const [previewDevice, setPreviewDevice] = useState("desktop");
@@ -44,8 +46,25 @@ export default function Builder({ existingConfig }) {
   const [hasChanges, setHasChanges] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileView, setMobileView] = useState("form");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState(null);
   const imageInputRef = useRef(null);
   const autoSaveTimer = useRef(null);
+  const profileMenuRef = useRef(null);
+
+  // Close profile menu on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    if (showProfileMenu) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [showProfileMenu]);
 
   // Undo/redo
   const updateConfig = useCallback((updates) => {
@@ -70,20 +89,25 @@ export default function Builder({ existingConfig }) {
   }
 
   // Keyboard shortcuts
+  const handleSaveRef = useRef(handleSave);
+  const undoRef = useRef(undo);
+  handleSaveRef.current = handleSave;
+  undoRef.current = undo;
+
   useEffect(() => {
     function handleKeyDown(e) {
       if ((e.metaKey || e.ctrlKey) && e.key === "z") {
         e.preventDefault();
-        undo();
+        undoRef.current();
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        handleSave();
+        handleSaveRef.current();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, []);
 
   // Mobile detection
   useEffect(() => {
@@ -136,7 +160,6 @@ export default function Builder({ existingConfig }) {
     const pageConfig = { ...config, id };
     savePage(pageConfig);
 
-    // Sync to Supabase if user is authenticated
     if (user?.id) {
       syncPageToSupabase(pageConfig, user.id).catch(() => {});
     }
@@ -213,14 +236,21 @@ export default function Builder({ existingConfig }) {
     reader.readAsText(file);
   }
 
+  function handleProFeatureClick(featureName) {
+    setUpgradeFeature(featureName);
+    setShowUpgradeModal(true);
+  }
+
   const previewWidths = {
     desktop: "100%",
     tablet: 768,
     mobile: 375,
   };
 
+  const userInitial = user?.email ? user.email[0].toUpperCase() : "?";
+
   return (
-    <div className="builder-layout" style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--background)" }}>
+    <div className="builder-layout" style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#0f0f0f" }}>
       {/* Mobile Toggle */}
       {isMobile && (
         <div className="builder-mobile-toggle" style={{ display: "flex" }}>
@@ -251,183 +281,269 @@ export default function Builder({ existingConfig }) {
       <div
         className={`builder-form-panel${isMobile && mobileView !== "form" ? " mobile-hidden" : ""}`}
         style={{
-          width: isMobile ? "100%" : 420,
-          minWidth: isMobile ? "unset" : 420,
-          borderRight: isMobile ? "none" : "1px solid var(--border)",
+          width: isMobile ? "100%" : 440,
+          minWidth: isMobile ? "unset" : 440,
+          borderRight: isMobile ? "none" : "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           flexDirection: "column",
-          background: "var(--surface)",
+          background: "#141414",
           overflow: isMobile ? "auto" : "hidden",
         }}
       >
         {/* Header */}
         <div style={{
-          padding: "16px 20px",
-          borderBottom: "1px solid var(--border)",
+          padding: "12px 16px",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          background: "#141414",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button
-              onClick={() => router.push("/")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--foreground)",
-                fontWeight: 700,
-                fontSize: "1.1rem",
-                padding: 0,
-                fontFamily: "inherit",
-              }}
-            >
-              <div style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "linear-gradient(135deg, var(--primary), var(--secondary))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4v16" /><path d="M20 4v16" /><path d="M4 4c0 0 3-2 8-2s8 2 8 2" />
-                  <path d="M12 10v8" /><path d="M14.5 10.5c0 0-0.8-0.5-2.5-0.5s-2.5 1-2.5 2 1 1.8 2.5 2.2 2.5 1.2 2.5 2.3-1 2-2.5 2-2.5-0.5-2.5-0.5" />
-                </svg>
-              </div>
-              PayGate
-            </button>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {/* Auto-save indicator */}
+          <button
+            onClick={() => router.push("/dashboard")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px 8px 4px 4px",
+              borderRadius: 10,
+              fontFamily: "inherit",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <div style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: "linear-gradient(135deg, #16a34a, #065f46)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4v16" /><path d="M20 4v16" /><path d="M12 10v8" />
+              </svg>
+            </div>
+            <span style={{ fontWeight: 600, fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", letterSpacing: "-0.01em" }}>
+              {existingConfig ? "Edit Page" : "New Page"}
+            </span>
+          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Save status */}
             {autoSaved && (
               <span
                 className="animate-save-flash"
                 style={{
-                  fontSize: "0.72rem",
-                  color: "var(--success)",
+                  fontSize: "0.68rem",
+                  color: "rgba(34,197,94,0.7)",
                   fontWeight: 500,
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 Draft saved
               </span>
             )}
-            {hasChanges && !autoSaved && (
-              <span style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--warning)",
-                display: "inline-block",
-              }}
-              title="Unsaved changes"
-              />
-            )}
-            <button
-              onClick={undo}
-              disabled={historyIndex < 0}
-              title="Undo (Cmd+Z)"
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-                cursor: historyIndex < 0 ? "default" : "pointer",
-                opacity: historyIndex < 0 ? 0.3 : 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--muted)",
-                transition: "all 0.15s",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="1 4 1 10 7 10" />
-                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
-              </svg>
-            </button>
+
+            {/* Publish */}
             <button
               onClick={handleSave}
               disabled={saving}
-              className="btn-primary"
-              style={{ padding: "8px 20px", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 6 }}
+              style={{
+                padding: "7px 18px",
+                fontSize: "0.82rem",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "linear-gradient(135deg, #16a34a, #15803d)",
+                color: "white",
+                border: "none",
+                borderRadius: 9,
+                fontWeight: 600,
+                cursor: saving ? "wait" : "pointer",
+                fontFamily: "inherit",
+                transition: "all 0.2s",
+                boxShadow: "0 2px 12px rgba(22,163,74,0.3)",
+              }}
             >
               {saving ? (
-                <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving...</>
+                <><span className="spinner" style={{ width: 13, height: 13 }} /> Saving...</>
               ) : (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                   Publish
                 </>
               )}
             </button>
+
+            {/* Profile Avatar */}
+            <div ref={profileMenuRef} style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  border: showProfileMenu ? "1.5px solid rgba(22,163,74,0.5)" : "1.5px solid rgba(255,255,255,0.1)",
+                  background: showProfileMenu ? "rgba(22,163,74,0.1)" : "linear-gradient(135deg, rgba(22,163,74,0.15), rgba(6,95,70,0.15))",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(255,255,255,0.9)",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  transition: "all 0.15s",
+                  fontFamily: "inherit",
+                  padding: 0,
+                }}
+              >
+                {userInitial}
+              </button>
+
+              {/* Profile Dropdown */}
+              {showProfileMenu && (
+                <div className="animate-fade-in" style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  width: 220,
+                  background: "#1c1c1c",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 14,
+                  padding: 6,
+                  zIndex: 100,
+                  boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                }}>
+                  {/* User info */}
+                  <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 4 }}>
+                    <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "rgba(255,255,255,0.9)", marginBottom: 2 }}>
+                      {user?.email?.split("@")[0] || "Guest"}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)" }}>
+                      {user?.email || "Not signed in"}
+                    </div>
+                    <div style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      marginTop: 6,
+                      fontSize: "0.62rem",
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: 5,
+                      background: isPro ? "rgba(139,92,246,0.12)" : "rgba(255,255,255,0.05)",
+                      color: isPro ? "#a78bfa" : "rgba(255,255,255,0.4)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}>
+                      {isPro ? "Pro Plan" : "Free Plan"}
+                    </div>
+                  </div>
+
+                  {/* Menu items */}
+                  <ProfileMenuItem
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>}
+                    label="Dashboard"
+                    onClick={() => { setShowProfileMenu(false); router.push("/dashboard"); }}
+                  />
+                  {!isPro && (
+                    <ProfileMenuItem
+                      icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>}
+                      label="Upgrade to Pro"
+                      accent
+                      onClick={() => { setShowProfileMenu(false); router.push("/pricing"); }}
+                    />
+                  )}
+
+                  <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+
+                  <ProfileMenuItem
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>}
+                    label="Sign Out"
+                    danger
+                    onClick={() => { setShowProfileMenu(false); signOut(); router.push("/"); }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
         <div style={{
           display: "flex",
-          borderBottom: "1px solid var(--border)",
-          padding: "0 12px",
-          gap: 2,
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          padding: "0 8px",
+          gap: 0,
+          background: "#141414",
         }}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setPrevTab(activeTab); setActiveTab(tab.id); }}
-              className={activeTab === tab.id ? "tab-active" : ""}
-              style={{
-                padding: "12px 14px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "0.8rem",
-                fontWeight: activeTab === tab.id ? 600 : 500,
-                color: activeTab === tab.id ? "var(--primary)" : "var(--muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                transition: "all 0.15s",
-                fontFamily: "inherit",
-                position: "relative",
-              }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d={tab.icon} />
-              </svg>
-              {tab.label}
-            </button>
-          ))}
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setPrevTab(activeTab); setActiveTab(tab.id); }}
+                style={{
+                  padding: "11px 14px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "0.78rem",
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? "#16a34a" : "rgba(255,255,255,0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s",
+                  fontFamily: "inherit",
+                  position: "relative",
+                  borderBottom: isActive ? "2px solid #16a34a" : "2px solid transparent",
+                  marginBottom: -1,
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={tab.icon} />
+                </svg>
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Form Content */}
         <div style={{
           flex: 1,
           overflowY: "auto",
-          padding: 20,
+          padding: "20px 18px 32px",
           display: "flex",
           flexDirection: "column",
-          gap: 20,
+          gap: 18,
         }}>
           {/* Product Tab */}
           {activeTab === "product" && (
-            <>
+            <div key="product" className="builder-tab-content" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <FormField label="Product Name">
                 <input
-                  className="input-base"
+                  className="builder-input"
                   value={config.productName}
                   onChange={(e) => updateConfig({ productName: e.target.value })}
                   placeholder="e.g. Premium Course Access"
@@ -436,7 +552,7 @@ export default function Builder({ existingConfig }) {
 
               <FormField label="Description">
                 <textarea
-                  className="input-base"
+                  className="builder-input"
                   value={config.productDescription}
                   onChange={(e) => updateConfig({ productDescription: e.target.value })}
                   placeholder="Describe your product..."
@@ -445,10 +561,10 @@ export default function Builder({ existingConfig }) {
                 />
               </FormField>
 
-              <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ display: "flex", gap: 10 }}>
                 <FormField label="Price" style={{ flex: 1 }}>
                   <input
-                    className="input-base"
+                    className="builder-input"
                     type="number"
                     min="0"
                     step="0.01"
@@ -459,7 +575,7 @@ export default function Builder({ existingConfig }) {
                 </FormField>
                 <FormField label="Currency" style={{ width: 130 }}>
                   <select
-                    className="input-base"
+                    className="builder-input"
                     value={config.currency}
                     onChange={(e) => updateConfig({ currency: e.target.value })}
                   >
@@ -477,24 +593,24 @@ export default function Builder({ existingConfig }) {
 
               {/* Product Images */}
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--foreground)", marginBottom: 6 }}>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.55)", marginBottom: 6 }}>
                   Product Images
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(config.productImages || []).map((img, i) => (
-                    <div key={i} style={{ position: "relative", width: 72, height: 72, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
+                    <div key={i} style={{ position: "relative", width: 68, height: 68, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
                       <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
                         style={{
                           position: "absolute",
-                          top: 2,
-                          right: 2,
+                          top: 3,
+                          right: 3,
                           width: 18,
                           height: 18,
                           borderRadius: "50%",
-                          background: "var(--danger)",
+                          background: "rgba(239,68,68,0.9)",
                           color: "white",
                           border: "none",
                           cursor: "pointer",
@@ -514,20 +630,22 @@ export default function Builder({ existingConfig }) {
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
                     style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: 8,
-                      border: "2px dashed var(--border)",
+                      width: 68,
+                      height: 68,
+                      borderRadius: 10,
+                      border: "2px dashed rgba(255,255,255,0.1)",
                       background: "none",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "var(--muted-light)",
+                      color: "rgba(255,255,255,0.25)",
                       transition: "all 0.15s",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(22,163,74,0.4)"; e.currentTarget.style.color = "rgba(22,163,74,0.6)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.25)"; }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                   </button>
@@ -541,99 +659,118 @@ export default function Builder({ existingConfig }) {
                   style={{ display: "none" }}
                 />
               </div>
-            </>
+            </div>
           )}
 
           {/* Design Tab */}
           {activeTab === "design" && (
-            <>
-              {/* Visual Template Selector */}
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--foreground)", marginBottom: 8 }}>
-                  Template
-                </label>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 8 }}>
-                  {TEMPLATES.map((t) => {
-                    const selected = config.template === t.id;
-                    const colors = t.colors || {};
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => updateConfig({ template: t.id })}
-                        style={{
-                          padding: 10,
-                          borderRadius: 10,
-                          border: selected ? `2px solid var(--primary)` : "2px solid var(--border)",
-                          background: selected ? "var(--primary-light)" : "var(--surface)",
-                          cursor: "pointer",
-                          textAlign: "center",
-                          transition: "all 0.15s",
-                          fontFamily: "inherit",
-                          position: "relative",
-                        }}
-                      >
-                        {/* Mini preview */}
+            <div key="design" className="builder-tab-content" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <FormField label="Template">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
+                {TEMPLATES.map((t) => {
+                  const selected = config.template === t.id;
+                  const colors = t.colors || {};
+                  const templateLocked = !isPro && PREMIUM_TEMPLATES.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => templateLocked ? handleProFeatureClick(t.name + " template") : updateConfig({ template: t.id })}
+                      style={{
+                        padding: 8,
+                        borderRadius: 12,
+                        border: selected ? `2px solid #16a34a` : templateLocked ? "2px solid rgba(139,92,246,0.15)" : "2px solid rgba(255,255,255,0.06)",
+                        background: selected ? "rgba(22,163,74,0.08)" : "rgba(255,255,255,0.02)",
+                        cursor: "pointer",
+                        textAlign: "center",
+                        transition: "all 0.2s",
+                        fontFamily: "inherit",
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{
+                        width: "100%",
+                        height: 48,
+                        borderRadius: 8,
+                        background: colors.bg || "#fff",
+                        marginBottom: 6,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        overflow: "hidden",
+                        border: t.id === "brutalist" ? "2px solid #000" : "1px solid rgba(0,0,0,0.06)",
+                      }}>
                         <div style={{
-                          width: "100%",
-                          height: 52,
-                          borderRadius: 6,
-                          background: colors.bg || "#fff",
-                          marginBottom: 6,
+                          width: "60%",
+                          height: "70%",
+                          borderRadius: t.id === "brutalist" ? 2 : 4,
+                          background: typeof colors.card === "string" && colors.card.startsWith("rgba") ? "#1e293b" : (colors.card || "#fff"),
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 3,
+                          border: t.id === "brutalist" ? "2px solid #000" : "none",
+                          boxShadow: t.id === "neon" ? `0 0 8px ${colors.accent}44` : "none",
+                        }}>
+                          <div style={{ width: "50%", height: 3, borderRadius: 2, background: colors.accent || "#16a34a" }} />
+                          <div style={{ width: "70%", height: 7, borderRadius: t.id === "brutalist" ? 1 : 3, background: colors.accent || "#16a34a" }} />
+                        </div>
+                      </div>
+                      {selected && (
+                        <div style={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: "#16a34a",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          overflow: "hidden",
-                          border: t.id === "brutalist" ? "2px solid #000" : "1px solid rgba(0,0,0,0.06)",
                         }}>
-                          <div style={{
-                            width: "60%",
-                            height: "70%",
-                            borderRadius: t.id === "brutalist" ? 2 : 4,
-                            background: typeof colors.card === "string" && colors.card.startsWith("rgba") ? "#1e293b" : (colors.card || "#fff"),
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 3,
-                            border: t.id === "brutalist" ? "2px solid #000" : "none",
-                            boxShadow: t.id === "neon" ? `0 0 8px ${colors.accent}44` : "none",
-                          }}>
-                            <div style={{ width: "50%", height: 3, borderRadius: 2, background: colors.accent || "#16a34a" }} />
-                            <div style={{ width: "70%", height: 8, borderRadius: t.id === "brutalist" ? 1 : 3, background: colors.accent || "#16a34a" }} />
-                          </div>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                         </div>
-                        {selected && (
-                          <div style={{
-                            position: "absolute",
-                            top: 4,
-                            right: 4,
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            background: "var(--primary)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                          </div>
+                      )}
+                      {templateLocked && (
+                        <div style={{
+                          position: "absolute",
+                          top: 4,
+                          left: 4,
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: "rgba(139,92,246,0.15)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0110 0v4" />
+                          </svg>
+                        </div>
+                      )}
+                      <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                        {t.name}
+                        {templateLocked && (
+                          <span style={{ fontSize: "0.5rem", fontWeight: 700, color: "#a78bfa", background: "rgba(139,92,246,0.12)", padding: "1px 4px", borderRadius: 3 }}>PRO</span>
                         )}
-                        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--foreground)" }}>{t.name}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+              </FormField>
 
-              {/* Custom template color pickers */}
-              {config.template === "custom" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 12, border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)" }}>
+              {config.template === "custom" && isPro && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 12, border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, background: "rgba(255,255,255,0.02)" }}>
                   <ColorPicker label="Background Color" value={config.customBgColor || "#ffffff"} onChange={(v) => updateConfig({ customBgColor: v })} />
                   <ColorPicker label="Card Background" value={config.customCardBg || "#ffffff"} onChange={(v) => updateConfig({ customCardBg: v })} />
                   <ColorPicker label="Text Color" value={config.customTextColor || "#1a1a1a"} onChange={(v) => updateConfig({ customTextColor: v })} />
                   <FormField label="Border Style">
-                    <input className="input-base" value={config.customBorderStyle || "1px solid #e5e7eb"} onChange={(e) => updateConfig({ customBorderStyle: e.target.value })} placeholder="1px solid #e5e7eb" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem" }} />
+                    <input className="builder-input" value={config.customBorderStyle || "1px solid #e5e7eb"} onChange={(e) => updateConfig({ customBorderStyle: e.target.value })} placeholder="1px solid #e5e7eb" style={{ fontFamily: "var(--font-mono)", fontSize: "0.78rem" }} />
                   </FormField>
                 </div>
               )}
@@ -654,7 +791,7 @@ export default function Builder({ existingConfig }) {
 
               <FormField label="Font">
                 <select
-                  className="input-base"
+                  className="builder-input"
                   value={config.fontFamily}
                   onChange={(e) => updateConfig({ fontFamily: e.target.value })}
                 >
@@ -667,7 +804,7 @@ export default function Builder({ existingConfig }) {
               </FormField>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--foreground)", marginBottom: 8 }}>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>
                   Button Style
                 </label>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -678,13 +815,13 @@ export default function Builder({ existingConfig }) {
                       onClick={() => updateConfig({ buttonStyle: bs.id })}
                       style={{
                         flex: 1,
-                        padding: "10px 16px",
+                        padding: "9px 14px",
                         borderRadius: bs.radius,
-                        border: config.buttonStyle === bs.id ? "2px solid var(--primary)" : "2px solid var(--border)",
-                        background: config.buttonStyle === bs.id ? config.accentColor : "var(--surface)",
-                        color: config.buttonStyle === bs.id ? "white" : "var(--foreground)",
+                        border: config.buttonStyle === bs.id ? "2px solid #16a34a" : "2px solid rgba(255,255,255,0.06)",
+                        background: config.buttonStyle === bs.id ? "rgba(22,163,74,0.12)" : "rgba(255,255,255,0.02)",
+                        color: config.buttonStyle === bs.id ? "#22c55e" : "rgba(255,255,255,0.5)",
                         cursor: "pointer",
-                        fontSize: "0.8rem",
+                        fontSize: "0.78rem",
                         fontWeight: 600,
                         transition: "all 0.15s",
                         fontFamily: "inherit",
@@ -697,7 +834,7 @@ export default function Builder({ existingConfig }) {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--foreground)", marginBottom: 8 }}>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>
                   Background Pattern
                 </label>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -708,14 +845,14 @@ export default function Builder({ existingConfig }) {
                       onClick={() => updateConfig({ backgroundPattern: bp.id })}
                       style={{
                         flex: 1,
-                        padding: "8px 12px",
+                        padding: "8px 10px",
                         borderRadius: 8,
-                        border: config.backgroundPattern === bp.id ? "2px solid var(--primary)" : "2px solid var(--border)",
-                        background: config.backgroundPattern === bp.id ? "var(--primary-light)" : "var(--surface)",
+                        border: config.backgroundPattern === bp.id ? "2px solid #16a34a" : "2px solid rgba(255,255,255,0.06)",
+                        background: config.backgroundPattern === bp.id ? "rgba(22,163,74,0.08)" : "rgba(255,255,255,0.02)",
                         cursor: "pointer",
-                        fontSize: "0.78rem",
+                        fontSize: "0.75rem",
                         fontWeight: 600,
-                        color: "var(--foreground)",
+                        color: config.backgroundPattern === bp.id ? "#22c55e" : "rgba(255,255,255,0.5)",
                         transition: "all 0.15s",
                         fontFamily: "inherit",
                       }}
@@ -725,12 +862,13 @@ export default function Builder({ existingConfig }) {
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Features Tab */}
           {activeTab === "features" && (
-            <>
+            <div key="features" className="builder-tab-content" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
               <ToggleField
                 label="Quantity Selector"
                 description="Let customers choose how many to buy"
@@ -738,16 +876,18 @@ export default function Builder({ existingConfig }) {
                 onChange={(v) => updateConfig({ enableQuantity: v })}
               />
               {config.enableQuantity && (
-                <FormField label="Max Quantity">
-                  <input
-                    className="input-base"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={config.maxQuantity}
-                    onChange={(e) => updateConfig({ maxQuantity: parseInt(e.target.value) || 10 })}
-                  />
-                </FormField>
+                <SubField>
+                  <FormField label="Max Quantity">
+                    <input
+                      className="builder-input"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={config.maxQuantity}
+                      onChange={(e) => updateConfig({ maxQuantity: parseInt(e.target.value) || 10 })}
+                    />
+                  </FormField>
+                </SubField>
               )}
 
               <ToggleField
@@ -757,27 +897,29 @@ export default function Builder({ existingConfig }) {
                 onChange={(v) => updateConfig({ enableCoupon: v })}
               />
               {config.enableCoupon && (
-                <div style={{ display: "flex", gap: 12 }}>
-                  <FormField label="Coupon Code" style={{ flex: 1 }}>
-                    <input
-                      className="input-base"
-                      value={config.couponCode}
-                      onChange={(e) => updateConfig({ couponCode: e.target.value.toUpperCase() })}
-                      placeholder="SAVE10"
-                      style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase" }}
-                    />
-                  </FormField>
-                  <FormField label="Discount %" style={{ width: 100 }}>
-                    <input
-                      className="input-base"
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={config.couponDiscount}
-                      onChange={(e) => updateConfig({ couponDiscount: parseInt(e.target.value) || 0 })}
-                    />
-                  </FormField>
-                </div>
+                <SubField>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <FormField label="Coupon Code" style={{ flex: 1 }}>
+                      <input
+                        className="builder-input"
+                        value={config.couponCode}
+                        onChange={(e) => updateConfig({ couponCode: e.target.value.toUpperCase() })}
+                        placeholder="SAVE10"
+                        style={{ fontFamily: "var(--font-mono)", textTransform: "uppercase" }}
+                      />
+                    </FormField>
+                    <FormField label="Discount %" style={{ width: 90 }}>
+                      <input
+                        className="builder-input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={config.couponDiscount}
+                        onChange={(e) => updateConfig({ couponDiscount: parseInt(e.target.value) || 0 })}
+                      />
+                    </FormField>
+                  </div>
+                </SubField>
               )}
 
               <ToggleField
@@ -787,32 +929,61 @@ export default function Builder({ existingConfig }) {
                 onChange={(v) => updateConfig({ enableCountdown: v })}
               />
               {config.enableCountdown && (
-                <FormField label="Deadline">
-                  <input
-                    className="input-base"
-                    type="datetime-local"
-                    value={config.countdownDate}
-                    onChange={(e) => updateConfig({ countdownDate: e.target.value })}
-                  />
-                </FormField>
+                <SubField>
+                  <FormField label="Deadline">
+                    <input
+                      className="builder-input"
+                      type="datetime-local"
+                      value={config.countdownDate}
+                      onChange={(e) => updateConfig({ countdownDate: e.target.value })}
+                    />
+                  </FormField>
+                </SubField>
               )}
 
               <ToggleField
                 label="Stock Counter"
-                description='Show "Only X left" urgency'
+                description={'"Only X left" urgency'}
                 value={config.enableStockCounter}
                 onChange={(v) => updateConfig({ enableStockCounter: v })}
               />
               {config.enableStockCounter && (
-                <FormField label="Stock Count">
-                  <input
-                    className="input-base"
-                    type="number"
-                    min="1"
-                    value={config.stockCount}
-                    onChange={(e) => updateConfig({ stockCount: parseInt(e.target.value) || 0 })}
-                  />
-                </FormField>
+                <SubField>
+                  <FormField label="Stock Count">
+                    <input
+                      className="builder-input"
+                      type="number"
+                      min="1"
+                      value={config.stockCount}
+                      onChange={(e) => updateConfig({ stockCount: parseInt(e.target.value) || 0 })}
+                    />
+                  </FormField>
+                </SubField>
+              )}
+
+              <ToggleField
+                label="Guarantee Badge"
+                description="Show a money-back guarantee"
+                value={config.enableGuaranteeBadge}
+                onChange={(v) => updateConfig({ enableGuaranteeBadge: v })}
+              />
+              {config.enableGuaranteeBadge && (
+                <SubField>
+                  <FormField label="Guarantee Text">
+                    <input
+                      className="builder-input"
+                      value={config.guaranteeText}
+                      onChange={(e) => updateConfig({ guaranteeText: e.target.value })}
+                      placeholder="30-Day Money Back Guarantee"
+                    />
+                  </FormField>
+                </SubField>
+              )}
+
+              {!isPro && (
+                <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.06em", padding: "10px 0 2px" }}>
+                  Pro
+                </div>
               )}
 
               <ToggleField
@@ -820,17 +991,21 @@ export default function Builder({ existingConfig }) {
                 description="Show how many people bought this"
                 value={config.enableSocialProof}
                 onChange={(v) => updateConfig({ enableSocialProof: v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Social Proof")}
               />
-              {config.enableSocialProof && (
-                <FormField label="Customer Count">
-                  <input
-                    className="input-base"
-                    type="number"
-                    min="0"
-                    value={config.socialProofCount}
-                    onChange={(e) => updateConfig({ socialProofCount: parseInt(e.target.value) || 0 })}
-                  />
-                </FormField>
+              {config.enableSocialProof && isPro && (
+                <SubField>
+                  <FormField label="Customer Count">
+                    <input
+                      className="builder-input"
+                      type="number"
+                      min="0"
+                      value={config.socialProofCount}
+                      onChange={(e) => updateConfig({ socialProofCount: parseInt(e.target.value) || 0 })}
+                    />
+                  </FormField>
+                </SubField>
               )}
 
               <ToggleField
@@ -838,16 +1013,19 @@ export default function Builder({ existingConfig }) {
                 description="Add customer reviews to your checkout"
                 value={config.enableTestimonials}
                 onChange={(v) => updateConfig({ enableTestimonials: v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Testimonials")}
               />
-              {config.enableTestimonials && (
+              {config.enableTestimonials && isPro && (
                 <div>
                   {(config.testimonials || []).map((t, i) => (
                     <div key={i} style={{
                       padding: 12,
-                      border: "1px solid var(--border)",
-                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      borderRadius: 12,
                       marginBottom: 8,
                       position: "relative",
+                      background: "rgba(255,255,255,0.02)",
                     }}>
                       <button
                         type="button"
@@ -859,7 +1037,7 @@ export default function Builder({ existingConfig }) {
                           background: "none",
                           border: "none",
                           cursor: "pointer",
-                          color: "var(--muted-light)",
+                          color: "rgba(255,255,255,0.3)",
                           padding: 0,
                         }}
                       >
@@ -868,19 +1046,19 @@ export default function Builder({ existingConfig }) {
                         </svg>
                       </button>
                       <input
-                        className="input-base"
+                        className="builder-input"
                         value={t.name}
                         onChange={(e) => updateTestimonial(i, "name", e.target.value)}
                         placeholder="Customer name"
-                        style={{ marginBottom: 6, fontSize: "0.82rem" }}
+                        style={{ marginBottom: 6, fontSize: "0.8rem" }}
                       />
                       <textarea
-                        className="input-base"
+                        className="builder-input"
                         value={t.text}
                         onChange={(e) => updateTestimonial(i, "text", e.target.value)}
                         placeholder="Their review..."
                         rows={2}
-                        style={{ marginBottom: 6, fontSize: "0.82rem", resize: "vertical" }}
+                        style={{ marginBottom: 6, fontSize: "0.8rem", resize: "vertical" }}
                       />
                       <div style={{ display: "flex", gap: 4 }}>
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -890,7 +1068,7 @@ export default function Builder({ existingConfig }) {
                             onClick={() => updateTestimonial(i, "rating", star)}
                             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}
                           >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill={star <= t.rating ? "#f59e0b" : "none"} stroke="#f59e0b" strokeWidth="2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill={star <= t.rating ? "#f59e0b" : "none"} stroke="#f59e0b" strokeWidth="2">
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                           </button>
@@ -901,29 +1079,39 @@ export default function Builder({ existingConfig }) {
                   <button
                     type="button"
                     onClick={addTestimonial}
-                    className="btn-secondary"
-                    style={{ width: "100%", padding: "8px 16px", fontSize: "0.82rem" }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 16px",
+                      fontSize: "0.8rem",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px dashed rgba(255,255,255,0.1)",
+                      borderRadius: 10,
+                      color: "rgba(255,255,255,0.5)",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      fontWeight: 600,
+                      transition: "all 0.15s",
+                    }}
                   >
                     + Add Testimonial
                   </button>
                 </div>
               )}
 
-              {/* Divider */}
-              <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-
-              {/* Exit-Intent Popup */}
               <ToggleField
                 label="Exit-Intent Popup"
                 description="Show a discount when users try to leave"
                 value={config.enableExitIntent}
                 onChange={(v) => updateConfig({ enableExitIntent: v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Exit-Intent Popup")}
+                tag="+10-30% conversions"
               />
-              {config.enableExitIntent && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {config.enableExitIntent && isPro && (
+                <SubField>
                   <FormField label="Headline">
                     <input
-                      className="input-base"
+                      className="builder-input"
                       value={config.exitIntentHeadline}
                       onChange={(e) => updateConfig({ exitIntentHeadline: e.target.value })}
                       placeholder="Wait! Don't miss out!"
@@ -931,7 +1119,7 @@ export default function Builder({ existingConfig }) {
                   </FormField>
                   <FormField label="Discount %">
                     <input
-                      className="input-base"
+                      className="builder-input"
                       type="number"
                       min="1"
                       max="100"
@@ -939,21 +1127,23 @@ export default function Builder({ existingConfig }) {
                       onChange={(e) => updateConfig({ exitIntentDiscount: parseInt(e.target.value) || 0 })}
                     />
                   </FormField>
-                </div>
+                </SubField>
               )}
 
-              {/* Order Bump */}
               <ToggleField
                 label="Order Bump"
                 description="Offer an add-on product at checkout"
                 value={config.enableBumpOffer}
                 onChange={(v) => updateConfig({ enableBumpOffer: v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Order Bump")}
+                tag="+15-30% revenue"
               />
-              {config.enableBumpOffer && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {config.enableBumpOffer && isPro && (
+                <SubField>
                   <FormField label="Bump Product Name">
                     <input
-                      className="input-base"
+                      className="builder-input"
                       value={config.bumpOfferName}
                       onChange={(e) => updateConfig({ bumpOfferName: e.target.value })}
                       placeholder="e.g. Priority Support"
@@ -961,7 +1151,7 @@ export default function Builder({ existingConfig }) {
                   </FormField>
                   <FormField label="Bump Price">
                     <input
-                      className="input-base"
+                      className="builder-input"
                       type="number"
                       min="0"
                       step="0.01"
@@ -972,78 +1162,67 @@ export default function Builder({ existingConfig }) {
                   </FormField>
                   <FormField label="Description">
                     <input
-                      className="input-base"
+                      className="builder-input"
                       value={config.bumpOfferDescription}
                       onChange={(e) => updateConfig({ bumpOfferDescription: e.target.value })}
                       placeholder="Get priority email support for 1 year"
                     />
                   </FormField>
-                </div>
+                </SubField>
               )}
 
-              {/* Guarantee Badge */}
-              <ToggleField
-                label="Guarantee Badge"
-                description="Show a money-back guarantee"
-                value={config.enableGuaranteeBadge}
-                onChange={(v) => updateConfig({ enableGuaranteeBadge: v })}
-              />
-              {config.enableGuaranteeBadge && (
-                <FormField label="Guarantee Text">
-                  <input
-                    className="input-base"
-                    value={config.guaranteeText}
-                    onChange={(e) => updateConfig({ guaranteeText: e.target.value })}
-                    placeholder="30-Day Money Back Guarantee"
-                  />
-                </FormField>
-              )}
-
-              {/* Promo Banner */}
               <ToggleField
                 label="Promo Banner"
                 description="Scrolling promotional text above checkout"
                 value={config.enablePromoBanner}
                 onChange={(v) => updateConfig({ enablePromoBanner: v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Promo Banner")}
               />
-              {config.enablePromoBanner && (
-                <FormField label="Banner Text">
-                  <input
-                    className="input-base"
-                    value={config.promoBannerText}
-                    onChange={(e) => updateConfig({ promoBannerText: e.target.value })}
-                    placeholder="Limited time offer - Save 20% today!"
-                  />
-                </FormField>
+              {config.enablePromoBanner && isPro && (
+                <SubField>
+                  <FormField label="Banner Text">
+                    <input
+                      className="builder-input"
+                      value={config.promoBannerText}
+                      onChange={(e) => updateConfig({ promoBannerText: e.target.value })}
+                      placeholder="Limited time offer - Save 20% today!"
+                    />
+                  </FormField>
+                </SubField>
               )}
 
-              {/* Password Protection */}
               <ToggleField
                 label="Password Protection"
                 description="Require a code to view checkout"
                 value={config.enablePasswordProtection}
                 onChange={(v) => updateConfig({ enablePasswordProtection: v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Password Protection")}
               />
-              {config.enablePasswordProtection && (
-                <FormField label="Access Code">
-                  <input
-                    className="input-base"
-                    value={config.passwordProtectionCode}
-                    onChange={(e) => updateConfig({ passwordProtectionCode: e.target.value })}
-                    placeholder="Enter access code"
-                    style={{ fontFamily: "var(--font-mono)" }}
-                  />
-                </FormField>
+              {config.enablePasswordProtection && isPro && (
+                <SubField>
+                  <FormField label="Access Code">
+                    <input
+                      className="builder-input"
+                      value={config.passwordProtectionCode}
+                      onChange={(e) => updateConfig({ passwordProtectionCode: e.target.value })}
+                      placeholder="Enter access code"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    />
+                  </FormField>
+                </SubField>
               )}
-            </>
+            </div>
           )}
 
           {/* Advanced Tab */}
           {activeTab === "advanced" && (
-            <>
+            <div key="advanced" className="builder-tab-content" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
               <FormField label="Custom Thank You Message">
                 <textarea
-                  className="input-base"
+                  className="builder-input"
                   value={config.customThankYou}
                   onChange={(e) => updateConfig({ customThankYou: e.target.value })}
                   placeholder="Thank you for your purchase!"
@@ -1054,7 +1233,7 @@ export default function Builder({ existingConfig }) {
 
               <FormField label="Success Redirect URL">
                 <input
-                  className="input-base"
+                  className="builder-input"
                   value={config.successRedirectUrl}
                   onChange={(e) => updateConfig({ successRedirectUrl: e.target.value })}
                   placeholder="https://example.com/thank-you"
@@ -1063,7 +1242,7 @@ export default function Builder({ existingConfig }) {
 
               <FormField label="SEO Title">
                 <input
-                  className="input-base"
+                  className="builder-input"
                   value={config.metaTitle}
                   onChange={(e) => updateConfig({ metaTitle: e.target.value })}
                   placeholder="Custom page title for search engines"
@@ -1072,7 +1251,7 @@ export default function Builder({ existingConfig }) {
 
               <FormField label="SEO Description">
                 <textarea
-                  className="input-base"
+                  className="builder-input"
                   value={config.metaDescription}
                   onChange={(e) => updateConfig({ metaDescription: e.target.value })}
                   placeholder="Custom description for search engines"
@@ -1083,46 +1262,78 @@ export default function Builder({ existingConfig }) {
 
               <FormField label="Custom CSS">
                 <textarea
-                  className="input-base"
+                  className="builder-input"
                   value={config.customCSS}
                   onChange={(e) => updateConfig({ customCSS: e.target.value })}
                   placeholder=".my-class { color: red; }"
                   rows={4}
-                  style={{ resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}
+                  style={{ resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "0.78rem" }}
                 />
               </FormField>
 
               <ToggleField
-                label="PayGate Branding"
-                description='Show "Built with PayGate" badge'
-                value={config.enableBranding !== false}
-                onChange={(v) => updateConfig({ enableBranding: v })}
+                label="Remove PayGate Branding"
+                description={'Hide the "Built with PayGate" badge'}
+                value={config.enableBranding === false}
+                onChange={(v) => updateConfig({ enableBranding: !v })}
+                locked={!isPro}
+                onLockedClick={() => handleProFeatureClick("Remove Branding")}
               />
 
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   type="button"
                   onClick={exportConfig}
-                  className="btn-secondary"
-                  style={{ flex: 1, fontSize: "0.82rem", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  style={{
+                    flex: 1,
+                    fontSize: "0.8rem",
+                    padding: "10px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 10,
+                    color: "rgba(255,255,255,0.6)",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 600,
+                    transition: "all 0.15s",
+                  }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Export JSON
+                  Export
                 </button>
                 <label
-                  className="btn-secondary"
-                  style={{ flex: 1, fontSize: "0.82rem", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" }}
+                  style={{
+                    flex: 1,
+                    fontSize: "0.8rem",
+                    padding: "10px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 10,
+                    color: "rgba(255,255,255,0.6)",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 600,
+                    transition: "all 0.15s",
+                  }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  Import JSON
+                  Import
                   <input type="file" accept=".json" onChange={importConfig} style={{ display: "none" }} />
                 </label>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -1130,17 +1341,17 @@ export default function Builder({ existingConfig }) {
       {/* Right Panel — Preview */}
       <div
         className={`builder-preview-panel${isMobile && mobileView !== "preview" ? " mobile-hidden" : ""}`}
-        style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--background)" }}
+        style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0f0f0f" }}
       >
         {/* Preview toolbar */}
         <div style={{
           padding: "10px 20px",
-          borderBottom: "1px solid var(--border)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: 4,
-          background: "var(--surface)",
+          background: "#141414",
         }}>
           {[
             { id: "desktop", icon: "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
@@ -1155,8 +1366,8 @@ export default function Builder({ existingConfig }) {
                 height: 36,
                 borderRadius: 8,
                 border: "none",
-                background: previewDevice === d.id ? "var(--primary-light)" : "transparent",
-                color: previewDevice === d.id ? "var(--primary)" : "var(--muted-light)",
+                background: previewDevice === d.id ? "rgba(22,163,74,0.1)" : "transparent",
+                color: previewDevice === d.id ? "#22c55e" : "rgba(255,255,255,0.25)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -1178,7 +1389,7 @@ export default function Builder({ existingConfig }) {
           display: "flex",
           justifyContent: "center",
           padding: previewDevice === "desktop" ? 0 : 32,
-          background: previewDevice === "desktop" ? "transparent" : "var(--background)",
+          background: previewDevice === "desktop" ? "#0f0f0f" : "#0a0a0a",
         }}>
           <div
             className="preview-frame"
@@ -1189,8 +1400,8 @@ export default function Builder({ existingConfig }) {
               minHeight: previewDevice !== "desktop" ? 600 : undefined,
               borderRadius: previewDevice === "desktop" ? 0 : 16,
               overflow: "hidden",
-              boxShadow: previewDevice === "desktop" ? "none" : "var(--shadow-xl)",
-              border: previewDevice === "desktop" ? "none" : "1px solid var(--border)",
+              boxShadow: previewDevice === "desktop" ? "none" : "0 20px 60px rgba(0,0,0,0.5)",
+              border: previewDevice === "desktop" ? "none" : "1px solid rgba(255,255,255,0.06)",
             }}
           >
             <CheckoutPreview
@@ -1207,23 +1418,147 @@ export default function Builder({ existingConfig }) {
         <ShareModal
           url={getCheckoutUrl(config.id)}
           onClose={() => setShowShareModal(false)}
+          plan={plan}
         />
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div
+          className="animate-modal-backdrop"
+          onClick={() => setShowUpgradeModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: 20,
+          }}
+        >
+          <div
+            className="animate-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#1a1a1a",
+              border: "1px solid rgba(139,92,246,0.2)",
+              borderRadius: 20,
+              padding: "32px 28px",
+              maxWidth: 380,
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            {/* Glow circle */}
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))",
+              border: "1px solid rgba(139,92,246,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: "1.15rem", fontWeight: 700, color: "rgba(255,255,255,0.95)", margin: "0 0 6px" }}>
+              Unlock {upgradeFeature}
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)", margin: "0 0 20px", lineHeight: 1.6 }}>
+              This feature is available on the Pro plan. Upgrade to access all premium tools and boost your conversions.
+            </p>
+
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              marginBottom: 20,
+              textAlign: "left",
+            }}>
+              {["All 8 templates", "2% platform fee (vs 5%)", "Unlimited pages", "Revenue analytics", "Advanced sharing"].map((item) => (
+                <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", color: "rgba(255,255,255,0.55)" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => { setShowUpgradeModal(false); router.push("/pricing"); }}
+              style={{
+                width: "100%",
+                padding: "12px 24px",
+                background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                color: "white",
+                border: "none",
+                borderRadius: 12,
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                transition: "all 0.2s",
+                boxShadow: "0 4px 20px rgba(139,92,246,0.3)",
+              }}
+            >
+              View Pro Plans
+            </button>
+
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.3)",
+                fontSize: "0.8rem",
+                cursor: "pointer",
+                marginTop: 10,
+                fontFamily: "inherit",
+              }}
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-/* Helper Components */
+/* ===== Helper Components ===== */
+
+function SubField({ children }) {
+  return (
+    <div style={{
+      paddingLeft: 14,
+      borderLeft: "2px solid rgba(22,163,74,0.15)",
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+      marginTop: -4,
+    }}>
+      {children}
+    </div>
+  );
+}
+
 function FormField({ label, children, style }) {
   return (
     <div style={style}>
       {label && (
         <label style={{
           display: "block",
-          fontSize: "0.85rem",
+          fontSize: "0.8rem",
           fontWeight: 600,
-          color: "var(--foreground)",
-          marginBottom: 6,
+          color: "rgba(255,255,255,0.55)",
+          marginBottom: 5,
         }}>
           {label}
         </label>
@@ -1233,29 +1568,117 @@ function FormField({ label, children, style }) {
   );
 }
 
-function ToggleField({ label, description, value, onChange }) {
+function ToggleField({ label, description, value, onChange, locked, onLockedClick, tag }) {
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "12px 14px",
-      borderRadius: 10,
-      border: "1px solid var(--border)",
-      background: value ? "var(--primary-light)" : "var(--surface)",
-      transition: "all 0.2s ease",
-    }}>
-      <div>
-        <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--foreground)" }}>{label}</div>
+    <div
+      onClick={locked ? onLockedClick : undefined}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "11px 13px",
+        borderRadius: 12,
+        border: locked ? "1px solid rgba(139,92,246,0.12)" : value ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(255,255,255,0.06)",
+        background: locked ? "rgba(139,92,246,0.03)" : value ? "rgba(22,163,74,0.05)" : "rgba(255,255,255,0.02)",
+        transition: "all 0.2s ease",
+        cursor: locked ? "pointer" : "default",
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: "0.82rem", fontWeight: 600, color: locked ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.85)", display: "flex", alignItems: "center", gap: 6 }}>
+          {label}
+          {locked && (
+            <span style={{
+              fontSize: "0.55rem",
+              fontWeight: 700,
+              color: "#a78bfa",
+              background: "rgba(139,92,246,0.12)",
+              padding: "2px 6px",
+              borderRadius: 4,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}>
+              PRO
+            </span>
+          )}
+          {tag && !locked && (
+            <span style={{
+              fontSize: "0.55rem",
+              fontWeight: 700,
+              color: "#f59e0b",
+              background: "rgba(245,158,11,0.1)",
+              padding: "2px 6px",
+              borderRadius: 4,
+            }}>
+              {tag}
+            </span>
+          )}
+        </div>
         {description && (
-          <div style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: 1 }}>{description}</div>
+          <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", marginTop: 1 }}>{description}</div>
         )}
       </div>
-      <button
-        type="button"
-        className={`toggle-switch ${value ? "active" : ""}`}
-        onClick={() => onChange(!value)}
-      />
+      {locked ? (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          fontSize: "0.7rem",
+          fontWeight: 600,
+          color: "#a78bfa",
+          padding: "5px 10px",
+          borderRadius: 7,
+          background: "rgba(139,92,246,0.08)",
+          border: "1px solid rgba(139,92,246,0.12)",
+          whiteSpace: "nowrap",
+        }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+          Unlock
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={`toggle-switch ${value ? "active" : ""}`}
+          onClick={() => onChange(!value)}
+          style={{
+            background: value ? "#16a34a" : "rgba(255,255,255,0.1)",
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function ProfileMenuItem({ icon, label, onClick, accent, danger }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        padding: "9px 12px",
+        background: hovered ? "rgba(255,255,255,0.04)" : "transparent",
+        border: "none",
+        borderRadius: 8,
+        cursor: "pointer",
+        fontSize: "0.82rem",
+        fontWeight: 500,
+        color: danger ? "#ef4444" : accent ? "#a78bfa" : "rgba(255,255,255,0.6)",
+        fontFamily: "inherit",
+        textAlign: "left",
+        transition: "all 0.1s",
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "center", opacity: 0.7 }}>{icon}</span>
+      {label}
+    </button>
   );
 }

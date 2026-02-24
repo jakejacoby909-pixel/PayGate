@@ -136,20 +136,24 @@ export default function CheckoutPage() {
     );
   }
 
-  async function handlePay({ quantity, total, couponApplied }) {
+  async function handlePay({ quantity, unitPrice, couponDiscount, exitDiscount, bumpChecked, bumpName, bumpPrice }) {
     try {
       const baseUrl = window.location.origin;
+      const totalDiscount = Math.min((couponDiscount || 0) + (exitDiscount || 0), 100);
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pageId: id,
           productName: config.productName,
-          price: total / quantity,
+          price: parseFloat(config.price) || 0,
           currency: config.currency,
           quantity,
           successUrl: `${baseUrl}/checkout/${id}?success=true`,
           cancelUrl: `${baseUrl}/checkout/${id}`,
+          bumpName: bumpChecked ? bumpName : undefined,
+          bumpPrice: bumpChecked ? bumpPrice : undefined,
+          couponDiscount: totalDiscount > 0 ? totalDiscount : undefined,
         }),
       });
 

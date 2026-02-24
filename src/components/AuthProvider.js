@@ -2,12 +2,13 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase";
 
-const ADMIN_EMAIL = "jakejacoby909@gmail.com";
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "jakejacoby909@gmail.com";
 
 const AuthContext = createContext({
   user: null,
   loading: true,
   configured: false,
+  plan: "free",
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
@@ -26,6 +27,7 @@ export function isAdmin(user) {
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState("free");
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
@@ -42,15 +44,49 @@ export default function AuthProvider({ children }) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        // Admin always gets pro
+        if (session.user.email === ADMIN_EMAIL) {
+          setPlan("pro");
+        } else {
+          fetchPlan(session.user.id);
+        }
+      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        if (session.user.email === ADMIN_EMAIL) {
+          setPlan("pro");
+        } else {
+          fetchPlan(session.user.id);
+        }
+      } else {
+        setPlan("free");
+      }
     });
 
     return () => subscription.unsubscribe();
   }, [configured]);
+
+  async function fetchPlan(userId) {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", userId)
+        .single();
+      if (data?.plan) {
+        setPlan(data.plan);
+      }
+    } catch {
+      // Profile may not have plan column yet — default to free
+    }
+  }
 
   async function signInWithGoogle() {
     const supabase = getSupabaseBrowser();
@@ -78,6 +114,7 @@ export default function AuthProvider({ children }) {
     if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
+    setPlan("free");
   }
 
   return (
@@ -85,6 +122,7 @@ export default function AuthProvider({ children }) {
       user,
       loading,
       configured,
+      plan,
       signInWithGoogle,
       signInWithEmail,
       signUpWithEmail,

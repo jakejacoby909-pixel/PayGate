@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 export default function PrivacyPage() {
-  const lastUpdated = "February 10, 2026";
+  const lastUpdated = "February 23, 2026";
 
   return (
     <div style={{
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
         <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginBottom: 40 }}>Last updated: {lastUpdated}</p>
 
         <Section title="1. Introduction">
-          <p>PayGate (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service.</p>
+          <p>PayGate, operated by Jacoby Digital LLC (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service.</p>
         </Section>
 
         <Section title="2. Information We Collect">
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
 
         <Section title="13. Contact">
           <p>If you have questions or concerns about this Privacy Policy, contact us at:</p>
-          <p><strong>Email:</strong> support@paygate.app</p>
+          <p><strong>Email:</strong> support@pay-gate.dev</p>
         </Section>
 
         {/* Footer */}

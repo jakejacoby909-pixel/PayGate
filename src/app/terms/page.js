@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 export default function TermsPage() {
-  const lastUpdated = "February 10, 2026";
+  const lastUpdated = "February 23, 2026";
 
   return (
     <div style={{
@@ -49,7 +49,7 @@ export default function TermsPage() {
         <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginBottom: 40 }}>Last updated: {lastUpdated}</p>
 
         <Section title="1. Acceptance of Terms">
-          <p>By accessing or using PayGate (&quot;the Service&quot;), operated by PayGate (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree, you may not use the Service.</p>
+          <p>By accessing or using PayGate (&quot;the Service&quot;), operated by Jacoby Digital LLC (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree, you may not use the Service.</p>
           <p>We reserve the right to update these Terms at any time. Continued use of the Service after changes constitutes acceptance of the revised Terms.</p>
         </Section>
 
@@ -101,7 +101,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="8. Intellectual Property">
-          <p><strong>Our IP:</strong> The Service, including its design, code, features, and branding, is owned by PayGate and protected by intellectual property laws. You may not copy, modify, distribute, or reverse-engineer any part of the Service.</p>
+          <p><strong>Our IP:</strong> The Service, including its design, code, features, and branding, is owned by Jacoby Digital LLC and protected by intellectual property laws. You may not copy, modify, distribute, or reverse-engineer any part of the Service.</p>
           <p><strong>Your Content:</strong> You retain ownership of all content you create or upload to PayGate (product descriptions, images, logos, etc.). By using the Service, you grant us a limited, non-exclusive license to host, display, and transmit your content solely for the purpose of operating the Service.</p>
         </Section>
 
@@ -158,7 +158,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="18. Governing Law">
-          <p>These Terms shall be governed by and construed in accordance with the laws of the United States, without regard to conflict of law provisions.</p>
+          <p>These Terms shall be governed by and construed in accordance with the laws of the State of Idaho, United States, without regard to conflict of law provisions.</p>
         </Section>
 
         <Section title="19. Severability">
@@ -171,7 +171,7 @@ export default function TermsPage() {
 
         <Section title="21. Contact">
           <p>If you have questions about these Terms, contact us at:</p>
-          <p><strong>Email:</strong> support@paygate.app</p>
+          <p><strong>Email:</strong> support@pay-gate.dev</p>
         </Section>
 
         {/* Footer */}

@@ -11,6 +11,7 @@ import { formatPrice, getCheckoutUrl } from "@/lib/utils";
 import { useAuth } from "@/components/AuthProvider";
 import { isAdmin } from "@/components/AuthProvider";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { canCreatePage } from "@/lib/plans";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", href: "/", icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" },
@@ -252,10 +253,286 @@ function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen, isMobile }) {
   );
 }
 
+function MiniBarChart({ data, height = 120 }) {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data.map((d) => d.revenue), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height, padding: "0 4px" }}>
+      {data.map((d, i) => {
+        const barH = Math.max((d.revenue / max) * (height - 28), 4);
+        return (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div
+              title={`$${(d.revenue / 100).toFixed(2)} — ${d.sales} sale${d.sales !== 1 ? "s" : ""}`}
+              style={{
+                width: "100%",
+                height: barH,
+                borderRadius: 6,
+                background: d.revenue > 0
+                  ? "linear-gradient(180deg, var(--primary), var(--secondary))"
+                  : "var(--border)",
+                transition: "height 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+                cursor: "default",
+                minHeight: 4,
+              }}
+            />
+            <span style={{ fontSize: "0.62rem", color: "var(--muted-light)", fontWeight: 500 }}>
+              {d.month}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AreaChart({ data, height = 160 }) {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data.map((d) => d.revenue), 1);
+  const w = 100;
+  const h = height;
+  const pad = { top: 10, bottom: 28, left: 0, right: 0 };
+  const chartW = w - pad.left - pad.right;
+  const chartH = h - pad.top - pad.bottom;
+
+  const points = data.map((d, i) => ({
+    x: pad.left + (i / Math.max(data.length - 1, 1)) * chartW,
+    y: pad.top + chartH - (d.revenue / max) * chartH,
+    ...d,
+  }));
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const areaPath = linePath + ` L${points[points.length - 1].x},${pad.top + chartH} L${points[0].x},${pad.top + chartH} Z`;
+
+  return (
+    <div style={{ position: "relative", width: "100%", height }}>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map((pct) => (
+          <line key={pct} x1={pad.left} y1={pad.top + chartH * (1 - pct)} x2={pad.left + chartW} y2={pad.top + chartH * (1 - pct)} stroke="var(--border)" strokeWidth="0.3" />
+        ))}
+        <path d={areaPath} fill="url(#areaGrad)" />
+        <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="1.5" fill="var(--primary)" stroke="var(--surface)" strokeWidth="0.8" />
+        ))}
+      </svg>
+      {/* X labels */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "space-between", padding: "0 2px" }}>
+        {data.map((d, i) => (
+          <span key={i} style={{ fontSize: "0.62rem", color: "var(--muted-light)", fontWeight: 500 }}>{d.month}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RevenuePanel({ revenueData, isMobile, pages }) {
+  const s = revenueData?.summary || {};
+  const txns = revenueData?.transactions || [];
+  const totalRev = (s.totalRevenue || 0) / 100;
+  const netRev = (s.netRevenue || 0) / 100;
+  const thisMonth = (s.thisMonthRevenue || 0) / 100;
+  const lastMonth = (s.lastMonthRevenue || 0) / 100;
+  const avgOrder = (s.avgOrder || 0) / 100;
+  const totalSales = s.totalSales || 0;
+  const feesSaved = totalRev * 0.03; // 5% free vs 2% pro = 3% saved
+
+  // Insights
+  const bestPage = s.perPage && s.perPage.length > 0
+    ? s.perPage.reduce((a, b) => (a.revenue > b.revenue ? a : b))
+    : null;
+  const recentTxns = txns.slice(0, 5);
+
+  // Per-page breakdown
+  const perPage = s.perPage || [];
+
+  function exportCSV() {
+    if (txns.length === 0) return;
+    const rows = [["Date", "Product", "Customer", "Amount", "Status"]];
+    txns.forEach((t) => {
+      rows.push([
+        new Date(t.created_at).toLocaleDateString(),
+        t.product_name || "",
+        t.customer_email || "",
+        `$${((t.amount || 0) / 100).toFixed(2)}`,
+        t.status || "",
+      ]);
+    });
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "paygate-revenue.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Stat Cards */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gap: 12,
+      }}>
+        {[
+          { label: "Total Revenue", value: `$${totalRev.toFixed(2)}`, color: "#16a34a", bg: "rgba(22,163,74,0.08)", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+          { label: "Your Earnings", value: `$${netRev.toFixed(2)}`, sub: "After 2% Pro fee", color: "#22c55e", bg: "rgba(34,197,94,0.08)", icon: "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" },
+          { label: "This Month", value: `$${thisMonth.toFixed(2)}`, change: s.monthOverMonthChange, color: "#3b82f6", bg: "rgba(59,130,246,0.08)", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+          { label: "Total Sales", value: String(totalSales), sub: avgOrder > 0 ? `Avg $${avgOrder.toFixed(2)}` : null, color: "#f59e0b", bg: "rgba(245,158,11,0.08)", icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" },
+        ].map((stat) => (
+          <div key={stat.label} className="card-glow" style={{ padding: 18, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{stat.label}</span>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: stat.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stat.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={stat.icon} /></svg>
+              </div>
+            </div>
+            <div style={{ fontSize: "1.4rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{stat.value}</div>
+            {stat.change !== undefined && stat.change !== 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 5, fontSize: "0.7rem", fontWeight: 600, color: stat.change > 0 ? "#22c55e" : "#ef4444", background: stat.change > 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", padding: "2px 7px", borderRadius: 5 }}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d={stat.change > 0 ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} /></svg>
+                {Math.abs(stat.change)}%
+              </div>
+            )}
+            {stat.sub && <div style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: 4 }}>{stat.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Chart + Insights Row */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 16 }}>
+        {/* Area Chart */}
+        <div style={{ padding: 20, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+              Revenue Trend
+            </h3>
+            <button onClick={exportCSV} style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--muted)", background: "var(--background)", border: "1px solid var(--border)", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              Export CSV
+            </button>
+          </div>
+          {s.monthlyData && s.monthlyData.length > 0 ? (
+            <AreaChart data={s.monthlyData} height={180} />
+          ) : (
+            <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted-light)", fontSize: "0.85rem" }}>
+              Chart will appear after first sale
+            </div>
+          )}
+        </div>
+
+        {/* Insights */}
+        <div style={{ padding: 20, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 14 }}>
+          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+            Insights
+          </h3>
+          {[
+            { label: "Best Seller", value: bestPage ? (bestPage.productName || bestPage.pageId) : "—", sub: bestPage ? `$${(bestPage.revenue / 100).toFixed(2)} revenue` : "No sales yet" },
+            { label: "Avg Order Value", value: avgOrder > 0 ? `$${avgOrder.toFixed(2)}` : "—", sub: totalSales > 0 ? `Across ${totalSales} orders` : "No orders" },
+            { label: "Pro Fee Savings", value: `$${feesSaved.toFixed(2)}`, sub: "Saved vs 5% free tier" },
+            { label: "Conversion Rate", value: pages.length > 0 && totalSales > 0 ? `${((totalSales / Math.max(pages.reduce((a, p) => a + (p.views || 0), 0), 1)) * 100).toFixed(1)}%` : "—", sub: "Sales / page views" },
+          ].map((ins) => (
+            <div key={ins.label} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--background)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 3 }}>{ins.label}</div>
+              <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>{ins.value}</div>
+              <div style={{ fontSize: "0.68rem", color: "var(--muted-light)", marginTop: 1 }}>{ins.sub}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Per-Page Breakdown */}
+      {perPage.length > 0 && (
+        <div style={{ borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+            <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              Revenue by Page
+            </h3>
+          </div>
+          {perPage.map((pp, i) => {
+            const rev = (pp.revenue || 0) / 100;
+            const pct = totalRev > 0 ? ((rev / totalRev) * 100) : 0;
+            return (
+              <div key={pp.pageId || i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 20px", borderBottom: i < perPage.length - 1 ? "1px solid var(--border)" : "none" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: "0.85rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {pp.productName || pp.pageId}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: 2 }}>
+                    {pp.sales || 0} sale{(pp.sales || 0) !== 1 ? "s" : ""}
+                  </div>
+                </div>
+                {/* Mini bar */}
+                <div style={{ width: 80, height: 6, borderRadius: 3, background: "var(--border)", overflow: "hidden", flexShrink: 0 }}>
+                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", borderRadius: 3, background: "linear-gradient(90deg, var(--primary), var(--secondary))", transition: "width 0.5s ease" }} />
+                </div>
+                <div style={{ fontSize: "0.88rem", fontWeight: 700, fontVariantNumeric: "tabular-nums", textAlign: "right", minWidth: 70 }}>
+                  ${rev.toFixed(2)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Recent Transactions */}
+      <div style={{ borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}>
+        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3" /><circle cx="12" cy="12" r="10" /></svg>
+            Recent Transactions
+          </h3>
+          <span style={{ fontSize: "0.72rem", color: "var(--muted)", fontWeight: 500 }}>{txns.length} total</span>
+        </div>
+        {txns.length === 0 ? (
+          <div style={{ padding: "36px 20px", textAlign: "center" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 11, background: "var(--background)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted-light)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            </div>
+            <p style={{ fontSize: "0.88rem", fontWeight: 600, margin: "0 0 3px" }}>No transactions yet</p>
+            <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0 }}>Revenue appears here when customers complete checkout</p>
+          </div>
+        ) : (
+          <div>
+            {txns.map((txn, i) => (
+              <div key={txn.id || i} style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 5 : 14, padding: "12px 20px", borderBottom: i < txns.length - 1 ? "1px solid var(--border)" : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: txn.status === "completed" ? "#22c55e" : "#f59e0b", flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "0.83rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{txn.product_name || "Unknown"}</div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--muted)" }}>{txn.customer_email || "No email"}</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: isMobile ? "left" : "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${((txn.amount || 0) / 100).toFixed(2)}</div>
+                  <div style={{ fontSize: "0.66rem", color: "var(--muted)" }}>{new Date(txn.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const toast = useToast();
   const router = useRouter();
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, plan } = useAuth();
+  const isPro = plan === "pro";
   const configured = isSupabaseConfigured();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -266,6 +543,9 @@ function DashboardContent() {
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [activeTab, setActiveTab] = useState("pages");
+  const [revenueData, setRevenueData] = useState(null);
+  const [revenueLoading, setRevenueLoading] = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -301,6 +581,28 @@ function DashboardContent() {
     setLoading(false);
     setTimeout(() => setMounted(true), 100);
   }
+
+  async function loadRevenue() {
+    if (!configured || !user) return;
+    setRevenueLoading(true);
+    try {
+      const res = await fetch("/api/transactions");
+      if (res.ok) {
+        const data = await res.json();
+        setRevenueData(data);
+      }
+    } catch (err) {
+      console.error("Failed to load revenue:", err);
+    } finally {
+      setRevenueLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "revenue" && !revenueData && configured && user) {
+      loadRevenue();
+    }
+  }, [activeTab, configured, user]);
 
   const filteredPages = useMemo(() => {
     let result = pages;
@@ -419,16 +721,25 @@ function DashboardContent() {
             <div>
             <h1 style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0, letterSpacing: "-0.02em" }}>Dashboard</h1>
             <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0, marginTop: 2 }}>
-              Manage your checkout pages
+              {activeTab === "revenue" ? "Track your earnings" : "Manage your checkout pages"}
             </p>
             </div>
           </div>
-          <Link href="/builder" className="btn-primary ripple-btn" style={{ padding: "8px 20px", fontSize: "0.85rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New Page
-          </Link>
+          {canCreatePage(plan, pages.length) ? (
+            <Link href="/builder" className="btn-primary ripple-btn" style={{ padding: "8px 20px", fontSize: "0.85rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New Page
+            </Link>
+          ) : (
+            <Link href="/pricing" className="btn-primary ripple-btn" style={{ padding: "8px 20px", fontSize: "0.85rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, background: "#8b5cf6" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Upgrade for More
+            </Link>
+          )}
         </header>
 
         <div style={{ padding: isMobile ? "16px" : "28px 32px", maxWidth: 1000 }}>
@@ -478,6 +789,282 @@ function DashboardContent() {
             ))}
           </div>
 
+          {/* Tab Switcher */}
+          <div style={{
+            display: "flex",
+            gap: 4,
+            padding: 3,
+            background: "var(--background)",
+            borderRadius: 12,
+            marginBottom: 24,
+            width: "fit-content",
+            border: "1px solid var(--border)",
+          }}>
+            <button
+              onClick={() => setActiveTab("pages")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "9px 18px",
+                borderRadius: 9,
+                border: "none",
+                background: activeTab === "pages" ? "var(--surface)" : "transparent",
+                color: activeTab === "pages" ? "var(--foreground)" : "var(--muted)",
+                fontWeight: 600,
+                fontSize: "0.84rem",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                boxShadow: activeTab === "pages" ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Pages
+            </button>
+            <button
+              onClick={() => setActiveTab("revenue")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "9px 18px",
+                borderRadius: 9,
+                border: activeTab === "revenue" ? "none" : "none",
+                background: activeTab === "revenue"
+                  ? (isPro ? "var(--surface)" : "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(139,92,246,0.06))")
+                  : "transparent",
+                color: activeTab === "revenue"
+                  ? (isPro ? "var(--foreground)" : "#a78bfa")
+                  : "var(--muted)",
+                fontWeight: 600,
+                fontSize: "0.84rem",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                boxShadow: activeTab === "revenue" ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+              Revenue
+              {!isPro && (
+                <span style={{
+                  fontSize: "0.58rem",
+                  fontWeight: 700,
+                  color: "#a78bfa",
+                  background: "rgba(139,92,246,0.15)",
+                  padding: "2px 6px",
+                  borderRadius: 4,
+                  letterSpacing: "0.03em",
+                }}>PRO</span>
+              )}
+            </button>
+          </div>
+
+          {/* Revenue Tab */}
+          {activeTab === "revenue" && (
+            <div>
+              {!isPro ? (
+                <div
+                  onClick={() => router.push("/pricing")}
+                  style={{ position: "relative", cursor: "pointer", borderRadius: 16, overflow: "hidden" }}
+                >
+                  {/* Fake dashboard content */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 20, pointerEvents: "none" }}>
+                    {/* Fake stat cards */}
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 12 }}>
+                      {[
+                        { label: "Total Revenue", value: "$4,238.50", change: "+24%", color: "#16a34a", bg: "rgba(22,163,74,0.08)", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+                        { label: "Your Earnings", value: "$4,153.73", sub: "After 2% fee", color: "#22c55e", bg: "rgba(34,197,94,0.08)", icon: "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" },
+                        { label: "This Month", value: "$892.00", change: "+18%", color: "#3b82f6", bg: "rgba(59,130,246,0.08)", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
+                        { label: "Total Sales", value: "127", sub: "Avg $33.37", color: "#f59e0b", bg: "rgba(245,158,11,0.08)", icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" },
+                      ].map((stat) => (
+                        <div key={stat.label} style={{ padding: 16, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                            <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{stat.label}</span>
+                            <div style={{ width: 28, height: 28, borderRadius: 7, background: stat.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={stat.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={stat.icon} /></svg>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: "1.3rem", fontWeight: 800, letterSpacing: "-0.03em" }}>{stat.value}</div>
+                          {stat.change && <div style={{ display: "inline-flex", alignItems: "center", gap: 3, marginTop: 4, fontSize: "0.68rem", fontWeight: 600, color: "#22c55e", background: "rgba(34,197,94,0.08)", padding: "2px 7px", borderRadius: 5 }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6" /></svg>
+                            {stat.change}
+                          </div>}
+                          {stat.sub && <div style={{ fontSize: "0.68rem", color: "var(--muted)", marginTop: 3 }}>{stat.sub}</div>}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Fake chart + insights */}
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 14 }}>
+                      <div style={{ padding: 20, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                          <span style={{ fontSize: "0.88rem", fontWeight: 700, display: "flex", alignItems: "center", gap: 7 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+                            Revenue Trend
+                          </span>
+                          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--muted)", background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px" }}>Export CSV</span>
+                        </div>
+                        <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{ width: "100%", height: 160 }}>
+                          <defs>
+                            <linearGradient id="fakeGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
+                              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+                            </linearGradient>
+                          </defs>
+                          {[0, 0.25, 0.5, 0.75, 1].map((p) => (
+                            <line key={p} x1="0" y1={5 + 40 * (1-p)} x2="100" y2={5 + 40 * (1-p)} stroke="var(--border)" strokeWidth="0.3" />
+                          ))}
+                          <path d="M0,38 L17,30 L33,35 L50,22 L67,15 L83,18 L100,8 L100,45 L0,45 Z" fill="url(#fakeGrad)" />
+                          <path d="M0,38 L17,30 L33,35 L50,22 L67,15 L83,18 L100,8" fill="none" stroke="var(--primary)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                          {[[0,38],[17,30],[33,35],[50,22],[67,15],[83,18],[100,8]].map(([x,y],i) => (
+                            <circle key={i} cx={x} cy={y} r="1.5" fill="var(--primary)" stroke="var(--surface)" strokeWidth="0.8" />
+                          ))}
+                        </svg>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                          {["Sep","Oct","Nov","Dec","Jan","Feb"].map((m) => (
+                            <span key={m} style={{ fontSize: "0.6rem", color: "var(--muted-light)", fontWeight: 500 }}>{m}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: 18, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+                        <span style={{ fontSize: "0.88rem", fontWeight: 700, display: "flex", alignItems: "center", gap: 7 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                          Insights
+                        </span>
+                        {[
+                          { label: "Best Seller", value: "Premium Course", sub: "$1,470.00 revenue" },
+                          { label: "Avg Order", value: "$33.37", sub: "Across 127 orders" },
+                          { label: "Pro Savings", value: "$127.16", sub: "Saved vs 5% free" },
+                          { label: "Conv. Rate", value: "4.8%", sub: "Sales / page views" },
+                        ].map((ins) => (
+                          <div key={ins.label} style={{ padding: "8px 10px", borderRadius: 8, background: "var(--background)", border: "1px solid var(--border)" }}>
+                            <div style={{ fontSize: "0.62rem", fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{ins.label}</div>
+                            <div style={{ fontSize: "0.9rem", fontWeight: 700, marginTop: 1 }}>{ins.value}</div>
+                            <div style={{ fontSize: "0.62rem", color: "var(--muted-light)" }}>{ins.sub}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Fake per-page breakdown */}
+                    <div style={{ borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}>
+                      <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
+                        <span style={{ fontSize: "0.88rem", fontWeight: 700, display: "flex", alignItems: "center", gap: 7 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                          Revenue by Page
+                        </span>
+                      </div>
+                      {[
+                        { name: "Premium Course", sales: 52, rev: "$1,470.00", pct: 55 },
+                        { name: "Design Templates", sales: 41, rev: "$819.50", pct: 33 },
+                        { name: "Coaching Session", sales: 34, rev: "$1,949.00", pct: 12 },
+                      ].map((pp, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", borderBottom: i < 2 ? "1px solid var(--border)" : "none" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: "0.83rem", fontWeight: 600 }}>{pp.name}</div>
+                            <div style={{ fontSize: "0.68rem", color: "var(--muted)" }}>{pp.sales} sales</div>
+                          </div>
+                          <div style={{ width: 70, height: 5, borderRadius: 3, background: "var(--border)", overflow: "hidden", flexShrink: 0 }}>
+                            <div style={{ width: `${pp.pct}%`, height: "100%", borderRadius: 3, background: "linear-gradient(90deg, var(--primary), var(--secondary))" }} />
+                          </div>
+                          <div style={{ fontSize: "0.85rem", fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 65, textAlign: "right" }}>{pp.rev}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Overlay with Pro button */}
+                  <div style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(10, 15, 12, 0.55)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 16,
+                    zIndex: 2,
+                  }}>
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 12,
+                    }}>
+                      <div style={{
+                        padding: "14px 32px",
+                        background: "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+                        color: "white",
+                        borderRadius: 14,
+                        fontSize: "0.95rem",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        boxShadow: "0 8px 32px rgba(139,92,246,0.4)",
+                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                      }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(139,92,246,0.5)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(139,92,246,0.4)"; }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                        Upgrade to Pro
+                      </div>
+                      <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
+                        Click anywhere to view plans
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : revenueLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />
+                  ))}
+                </div>
+              ) : !configured ? (
+                <div style={{
+                  textAlign: "center",
+                  padding: "60px 20px",
+                  borderRadius: 16,
+                  border: "2px dashed var(--border)",
+                  background: "var(--surface)",
+                }}>
+                  <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 14,
+                    background: "rgba(59,130,246,0.08)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 16px",
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </div>
+                  <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 8 }}>Connect Supabase to track revenue</h3>
+                  <p style={{ fontSize: "0.88rem", color: "var(--muted)", maxWidth: 360, margin: "0 auto" }}>
+                    Revenue tracking requires Supabase and Stripe to be configured. Transactions are recorded automatically when customers complete checkout.
+                  </p>
+                </div>
+              ) : (
+                <RevenuePanel revenueData={revenueData} isMobile={isMobile} pages={pages} />
+              )}
+            </div>
+          )}
+
+          {/* Pages Tab */}
+          {activeTab === "pages" && <>
           {/* Search and Actions */}
           <div style={{
             display: "flex",
@@ -736,12 +1323,13 @@ function DashboardContent() {
               {filteredPages.length} of {pages.length} page{pages.length !== 1 ? "s" : ""}
             </div>
           )}
+          </>}
         </div>
       </div>
 
       {/* Share Modal */}
       {shareUrl && (
-        <ShareModal url={shareUrl} onClose={() => setShareUrl(null)} />
+        <ShareModal url={shareUrl} onClose={() => setShareUrl(null)} plan={plan} />
       )}
 
       {/* Delete Confirmation */}

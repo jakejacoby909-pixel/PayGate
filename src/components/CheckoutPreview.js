@@ -170,7 +170,17 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
   function handlePay() {
     if (onPay) {
       setIsProcessing(true);
-      onPay({ quantity, total, couponApplied });
+      onPay({
+        quantity,
+        total,
+        couponApplied,
+        couponDiscount: couponApplied ? (c.couponDiscount || 0) : 0,
+        exitDiscount: exitDiscountApplied ? (c.exitIntentDiscount || 0) : 0,
+        bumpChecked,
+        bumpName: bumpChecked ? c.bumpOfferName : null,
+        bumpPrice: bumpChecked ? bumpPrice : 0,
+        unitPrice: discountedPrice,
+      });
       setTimeout(() => setIsProcessing(false), 2000);
     }
   }
@@ -245,20 +255,20 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
       {c.backgroundPattern === "dots" && (
         <div
           className="checkout-dots"
-          style={{ position: "absolute", inset: 0, color: isDark ? "#fff" : "#000", opacity: isDark ? 0.04 : 0.05 }}
+          style={{ position: "absolute", inset: 0, color: isDark ? "#fff" : "#000", opacity: isDark ? 0.08 : 0.12 }}
         />
       )}
       {c.backgroundPattern === "grid" && (
         <div
           className="checkout-grid"
-          style={{ position: "absolute", inset: 0, color: isDark ? "#fff" : "#000", opacity: isDark ? 0.03 : 0.04 }}
+          style={{ position: "absolute", inset: 0, color: isDark ? "#fff" : "#000", opacity: isDark ? 0.06 : 0.1 }}
         />
       )}
       {c.backgroundPattern === "gradient" && (
         <div style={{
           position: "absolute",
           inset: 0,
-          background: `radial-gradient(ellipse at top right, ${accent}20, transparent 60%), radial-gradient(ellipse at bottom left, ${accent}15, transparent 60%)`,
+          background: `radial-gradient(ellipse at top right, ${accent}40, transparent 60%), radial-gradient(ellipse at bottom left, ${accent}30, transparent 60%)`,
         }} />
       )}
 
@@ -1053,9 +1063,9 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
           </div>
         )}
 
-        {/* Custom CSS */}
+        {/* Custom CSS - sanitized to prevent XSS */}
         {c.customCSS && (
-          <style dangerouslySetInnerHTML={{ __html: c.customCSS }} />
+          <style dangerouslySetInnerHTML={{ __html: c.customCSS.replace(/<\/?script[^>]*>/gi, "").replace(/javascript\s*:/gi, "").replace(/expression\s*\(/gi, "").replace(/url\s*\(\s*['"]?\s*data\s*:/gi, "url(").replace(/@import/gi, "") }} />
         )}
       </div>
 
