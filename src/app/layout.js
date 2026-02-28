@@ -14,13 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
+  metadataBase: new URL("https://pay-gate.dev"),
   title: "PayGate — Instant Checkout Pages",
   description: "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required.",
-  keywords: ["checkout", "payment", "stripe", "hosted checkout", "payment links"],
+  keywords: ["checkout", "payment", "stripe", "hosted checkout", "payment links", "checkout page builder"],
+  icons: {
+    icon: "/icon.svg",
+  },
   openGraph: {
     title: "PayGate — Instant Checkout Pages",
-    description: "Create beautiful, hosted checkout pages powered by Stripe in seconds.",
+    description: "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required.",
+    url: "https://pay-gate.dev",
+    siteName: "PayGate",
     type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PayGate — Instant Checkout Pages",
+    description: "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required.",
   },
 };
 

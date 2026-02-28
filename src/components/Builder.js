@@ -16,9 +16,9 @@ import {
   BACKGROUND_PATTERNS,
   getCheckoutUrl,
 } from "@/lib/utils";
-import { savePage, syncPageToSupabase } from "@/lib/storage";
+import { savePage, syncPageToSupabase, getAllPages } from "@/lib/storage";
 import { useAuth } from "@/components/AuthProvider";
-import { hasFeature, hasTemplate, PREMIUM_TEMPLATES } from "@/lib/plans";
+import { hasFeature, hasTemplate, canCreatePage, PREMIUM_TEMPLATES } from "@/lib/plans";
 
 const AUTO_SAVE_DELAY = 3000;
 
@@ -49,6 +49,8 @@ export default function Builder({ existingConfig }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [connectLoading, setConnectLoading] = useState(false);
   const imageInputRef = useRef(null);
   const autoSaveTimer = useRef(null);
   const profileMenuRef = useRef(null);
@@ -145,6 +147,44 @@ export default function Builder({ existingConfig }) {
     } catch {}
   }, [existingConfig]);
 
+  async function checkConnectStatus() {
+    if (!user?.id) return false;
+    try {
+      const { getSupabaseBrowser } = await import("@/lib/supabase");
+      const supabase = getSupabaseBrowser();
+      if (!supabase) return false;
+      const { data } = await supabase
+        .from("profiles")
+        .select("stripe_connect_id, connect_onboarding_complete")
+        .eq("id", user.id)
+        .single();
+      return data?.connect_onboarding_complete === true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function handleConnectStripe() {
+    setConnectLoading(true);
+    try {
+      const res = await fetch("/api/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, userEmail: user.email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || "Failed to start Stripe Connect");
+      }
+    } catch {
+      toast.error("Failed to connect Stripe account");
+    } finally {
+      setConnectLoading(false);
+    }
+  }
+
   async function handleSave() {
     if (!config.productName.trim()) {
       toast.error("Please enter a product name");
@@ -152,6 +192,19 @@ export default function Builder({ existingConfig }) {
     }
     if (!config.price || parseFloat(config.price) <= 0) {
       toast.error("Please enter a valid price");
+      return;
+    }
+
+    // Block new page creation if at plan limit
+    if (!config.id && !canCreatePage(plan, getAllPages().length)) {
+      toast.error("Page limit reached. Upgrade to Pro for unlimited pages.");
+      return;
+    }
+
+    // Check Stripe Connect status before publishing
+    const isConnected = await checkConnectStatus();
+    if (!isConnected) {
+      setShowConnectModal(true);
       return;
     }
 
@@ -1524,6 +1577,106 @@ export default function Builder({ existingConfig }) {
               }}
             >
               Maybe later
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stripe Connect Modal */}
+      {showConnectModal && (
+        <div
+          className="animate-modal-backdrop"
+          onClick={() => setShowConnectModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: 20,
+          }}
+        >
+          <div
+            className="animate-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#1a1a1a",
+              border: "1px solid rgba(59,130,246,0.2)",
+              borderRadius: 20,
+              padding: "32px 28px",
+              maxWidth: 400,
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
+              border: "1px solid rgba(59,130,246,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: "1.15rem", fontWeight: 700, color: "rgba(255,255,255,0.95)", margin: "0 0 6px" }}>
+              Connect Stripe to Publish
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)", margin: "0 0 20px", lineHeight: 1.6 }}>
+              To receive payments from your checkout pages, you need to connect your Stripe account first. This takes about 2 minutes.
+            </p>
+
+            <button
+              onClick={() => { setShowConnectModal(false); handleConnectStripe(); }}
+              disabled={connectLoading}
+              style={{
+                width: "100%",
+                padding: "12px 24px",
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                color: "white",
+                border: "none",
+                borderRadius: 12,
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                transition: "all 0.2s",
+                boxShadow: "0 4px 20px rgba(59,130,246,0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              {connectLoading ? (
+                <><span className="spinner" style={{ width: 16, height: 16 }} /> Connecting...</>
+              ) : (
+                <>Connect Stripe Account</>
+              )}
+            </button>
+
+            <button
+              onClick={() => setShowConnectModal(false)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.3)",
+                fontSize: "0.8rem",
+                cursor: "pointer",
+                marginTop: 10,
+                fontFamily: "inherit",
+              }}
+            >
+              I&apos;ll do this later
             </button>
           </div>
         </div>

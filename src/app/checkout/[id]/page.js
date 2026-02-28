@@ -5,6 +5,7 @@ import CheckoutPreview from "@/components/CheckoutPreview";
 import LoadingScreen from "@/components/LoadingScreen";
 import { getPage, incrementViews, incrementConversions } from "@/lib/storage";
 import { formatPrice } from "@/lib/utils";
+import { getSupabaseBrowser } from "@/lib/supabase";
 import Link from "next/link";
 
 export default function CheckoutPage() {
@@ -16,14 +17,41 @@ export default function CheckoutPage() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
-    const page = getPage(id);
-    if (page) {
-      setConfig(page);
-      incrementViews(id);
-    } else {
+    async function loadPage() {
+      // Try localStorage first (for page owner's own browser)
+      const localPage = getPage(id);
+      if (localPage) {
+        setConfig(localPage);
+        incrementViews(id);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch from Supabase (for shared checkout URLs)
+      try {
+        const supabase = getSupabaseBrowser();
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("pages")
+            .select("config")
+            .eq("id", id)
+            .single();
+
+          if (data?.config) {
+            setConfig(data.config);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load page from Supabase:", err);
+      }
+
       setNotFound(true);
+      setLoading(false);
     }
-    setLoading(false);
+
+    loadPage();
   }, [id]);
 
   // Handle successful payment return

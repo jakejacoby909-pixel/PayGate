@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { PLANS, PRO_FEATURES } from "@/lib/plans";
@@ -63,9 +64,40 @@ const FAQ = [
 ];
 
 export default function PricingPage() {
+  const router = useRouter();
   const [annual, setAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState(null);
+  const [subscribing, setSubscribing] = useState(false);
   const { plan, user } = useAuth();
+
+  async function handleSubscribe() {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setSubscribing(true);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: annual ? "annual" : "monthly",
+          userId: user.id,
+          userEmail: user.email,
+        }),
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert(data.error || "Failed to start subscription");
+        setSubscribing(false);
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+      setSubscribing(false);
+    }
+  }
 
   const proPrice = annual ? PLANS.pro.priceYearly : PLANS.pro.price;
   const proLabel = annual ? "/year" : "/month";
@@ -350,20 +382,43 @@ export default function PricingPage() {
           <p style={{ fontSize: "0.88rem", color: "var(--muted)", margin: "0 0 24px", lineHeight: 1.5 }}>
             Everything you need to maximize sales. Pays for itself fast.
           </p>
-          <Link
-            href={plan === "pro" ? "/dashboard" : "/login"}
-            className="btn-primary ripple-btn"
-            style={{
-              display: "block",
-              textAlign: "center",
-              padding: "12px 24px",
-              fontSize: "0.9rem",
-              textDecoration: "none",
-              marginBottom: 24,
-            }}
-          >
-            {plan === "pro" ? "Current Plan" : "Upgrade to Pro"}
-          </Link>
+          {plan === "pro" ? (
+            <Link
+              href="/dashboard"
+              className="btn-primary ripple-btn"
+              style={{
+                display: "block",
+                textAlign: "center",
+                padding: "12px 24px",
+                fontSize: "0.9rem",
+                textDecoration: "none",
+                marginBottom: 24,
+              }}
+            >
+              Current Plan
+            </Link>
+          ) : (
+            <button
+              onClick={handleSubscribe}
+              disabled={subscribing}
+              className="btn-primary ripple-btn"
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "center",
+                padding: "12px 24px",
+                fontSize: "0.9rem",
+                marginBottom: 24,
+                border: "none",
+                cursor: subscribing ? "wait" : "pointer",
+                fontFamily: "inherit",
+                fontWeight: 600,
+                opacity: subscribing ? 0.7 : 1,
+              }}
+            >
+              {subscribing ? "Redirecting..." : "Upgrade to Pro"}
+            </button>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
               { text: "Unlimited pages", bold: true },
@@ -576,9 +631,14 @@ export default function PricingPage() {
           <Link href="/builder" className="btn-primary ripple-btn" style={{ padding: "12px 28px", fontSize: "0.9rem", textDecoration: "none" }}>
             Start for Free
           </Link>
-          <Link href="/login" className="btn-secondary" style={{ padding: "12px 28px", fontSize: "0.9rem", textDecoration: "none" }}>
-            Upgrade to Pro
-          </Link>
+          <button
+            onClick={handleSubscribe}
+            disabled={subscribing}
+            className="btn-secondary"
+            style={{ padding: "12px 28px", fontSize: "0.9rem", border: "1px solid var(--border)", cursor: subscribing ? "wait" : "pointer", fontFamily: "inherit", fontWeight: 600, background: "var(--surface)", color: "var(--foreground)", borderRadius: "var(--radius-full)" }}
+          >
+            {subscribing ? "Redirecting..." : "Upgrade to Pro"}
+          </button>
         </div>
       </section>
 

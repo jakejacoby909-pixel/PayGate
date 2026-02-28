@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "jakejacoby909@gmail.com";
@@ -24,11 +25,16 @@ export function isAdmin(user) {
   return user?.email === ADMIN_EMAIL;
 }
 
+// Protected routes that require login
+const PROTECTED_ROUTES = ["/dashboard", "/builder", "/admin"];
+
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState("free");
   const configured = isSupabaseConfigured();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!configured) {
@@ -42,26 +48,29 @@ export default function AuthProvider({ children }) {
       return;
     }
 
+    // Get initial session from localStorage
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // Admin always gets pro
-        if (session.user.email === ADMIN_EMAIL) {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        if (u.email === ADMIN_EMAIL) {
           setPlan("pro");
         } else {
-          fetchPlan(session.user.id);
+          fetchPlan(u.id);
         }
       }
       setLoading(false);
     });
 
+    // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        if (session.user.email === ADMIN_EMAIL) {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        if (u.email === ADMIN_EMAIL) {
           setPlan("pro");
         } else {
-          fetchPlan(session.user.id);
+          fetchPlan(u.id);
         }
       } else {
         setPlan("free");
@@ -70,6 +79,14 @@ export default function AuthProvider({ children }) {
 
     return () => subscription.unsubscribe();
   }, [configured]);
+
+  // Client-side route protection
+  useEffect(() => {
+    if (loading) return;
+    if (!user && PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
+      router.replace(`/login?redirect=${pathname}`);
+    }
+  }, [user, loading, pathname, router]);
 
   async function fetchPlan(userId) {
     const supabase = getSupabaseBrowser();
@@ -84,7 +101,7 @@ export default function AuthProvider({ children }) {
         setPlan(data.plan);
       }
     } catch {
-      // Profile may not have plan column yet — default to free
+      // Profile may not have plan column yet
     }
   }
 

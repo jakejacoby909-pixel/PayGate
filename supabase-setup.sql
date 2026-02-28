@@ -9,16 +9,25 @@ create table if not exists profiles (
   email text,
   created_at timestamptz default now(),
   pages_created int default 0,
-  total_revenue bigint default 0
+  total_revenue bigint default 0,
+  plan text default 'free',
+  stripe_customer_id text,
+  stripe_connect_id text,
+  connect_onboarding_complete boolean default false
 );
 
 alter table profiles enable row level security;
 
-create policy "Public profiles are viewable by everyone"
-  on profiles for select using (true);
+-- Users can only read their own profile
+create policy "Users can read own profile"
+  on profiles for select using (auth.uid() = id);
 
 create policy "Users can update own profile"
   on profiles for update using (auth.uid() = id);
+
+-- Allow insert for the trigger (runs as security definer)
+create policy "Users can insert own profile"
+  on profiles for insert with check (auth.uid() = id);
 
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
@@ -46,6 +55,7 @@ create table if not exists pages (
 
 alter table pages enable row level security;
 
+-- Authenticated users can manage their own pages
 create policy "Users can view own pages"
   on pages for select using (auth.uid() = user_id);
 
@@ -57,6 +67,10 @@ create policy "Users can update own pages"
 
 create policy "Users can delete own pages"
   on pages for delete using (auth.uid() = user_id);
+
+-- Public read access for checkout pages (unauthenticated customers)
+create policy "Public can read pages for checkout"
+  on pages for select using (true);
 
 -- Transactions table
 create table if not exists transactions (
@@ -74,10 +88,31 @@ create table if not exists transactions (
 
 alter table transactions enable row level security;
 
--- Only admins (via service role) can insert transactions
--- All authenticated users can read their own transactions
-create policy "Admins can view all transactions"
-  on transactions for select using (true);
+-- Page owners can view transactions for their pages
+create policy "Page owners can view their transactions"
+  on transactions for select using (
+    page_id in (select id from pages where user_id = auth.uid())
+  );
 
+-- Service role can insert transactions (webhooks)
 create policy "Service role can insert transactions"
   on transactions for insert with check (true);
+
+-- =============================================
+-- Migration block for existing databases
+-- Run this if you already have tables set up
+-- =============================================
+
+-- Add missing columns to profiles
+alter table profiles add column if not exists plan text default 'free';
+alter table profiles add column if not exists stripe_customer_id text;
+alter table profiles add column if not exists stripe_connect_id text;
+alter table profiles add column if not exists connect_onboarding_complete boolean default false;
+
+-- Drop old overly-permissive policies (ignore errors if they don't exist)
+do $$
+begin
+  drop policy if exists "Public profiles are viewable by everyone" on profiles;
+  drop policy if exists "Admins can view all transactions" on transactions;
+exception when others then null;
+end $$;

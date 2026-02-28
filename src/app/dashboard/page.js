@@ -108,7 +108,7 @@ function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen, isMobile }) {
                   fontWeight: active ? 600 : 500,
                   color: item.accent && !active ? "var(--primary)" : active ? "var(--foreground)" : "var(--muted)",
                   background: active ? "var(--primary-light)" : item.accent ? "rgba(22,163,74,0.04)" : "transparent",
-                  border: item.accent && !active ? "1px dashed rgba(22,163,74,0.25)" : "1px solid transparent",
+                  border: item.accent && !active ? "1px solid rgba(22,163,74,0.2)" : "1px solid transparent",
                   transition: "all 0.2s ease",
                   opacity: mounted ? 1 : 0,
                   transform: mounted ? "translateX(0)" : "translateX(-12px)",
@@ -537,6 +537,8 @@ function DashboardContent() {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [shareUrl, setShareUrl] = useState(null);
+  const [connectStatus, setConnectStatus] = useState("loading"); // loading | not_connected | pending | connected
+  const [connectLoading, setConnectLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -565,6 +567,7 @@ function DashboardContent() {
       return;
     }
     loadPages();
+    loadConnectStatus();
   }, [user, authLoading, configured]);
 
   async function loadPages() {
@@ -580,6 +583,53 @@ function DashboardContent() {
     }
     setLoading(false);
     setTimeout(() => setMounted(true), 100);
+  }
+
+  async function loadConnectStatus() {
+    if (!configured || !user) {
+      setConnectStatus("not_connected");
+      return;
+    }
+    try {
+      const { getSupabaseBrowser } = await import("@/lib/supabase");
+      const supabase = getSupabaseBrowser();
+      if (!supabase) { setConnectStatus("not_connected"); return; }
+      const { data } = await supabase
+        .from("profiles")
+        .select("stripe_connect_id, connect_onboarding_complete")
+        .eq("id", user.id)
+        .single();
+      if (!data?.stripe_connect_id) {
+        setConnectStatus("not_connected");
+      } else if (data.connect_onboarding_complete) {
+        setConnectStatus("connected");
+      } else {
+        setConnectStatus("pending");
+      }
+    } catch {
+      setConnectStatus("not_connected");
+    }
+  }
+
+  async function handleConnectStripe() {
+    setConnectLoading(true);
+    try {
+      const res = await fetch("/api/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, userEmail: user.email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || "Failed to start Stripe Connect onboarding");
+      }
+    } catch {
+      toast.error("Failed to connect Stripe account");
+    } finally {
+      setConnectLoading(false);
+    }
   }
 
   async function loadRevenue() {
@@ -627,6 +677,10 @@ function DashboardContent() {
   }, [pages, searchQuery, sortBy]);
 
   function handleDuplicate(id) {
+    if (!canCreatePage(plan, pages.length)) {
+      toast.error("Page limit reached. Upgrade to Pro for unlimited pages.");
+      return;
+    }
     const newPage = duplicatePage(id, nanoid(10));
     if (newPage) {
       setPages(getAllPages());
@@ -783,11 +837,101 @@ function DashboardContent() {
                   </div>
                 </div>
                 <div style={{ fontSize: "1.7rem", fontWeight: 800, letterSpacing: "-0.03em" }}>
-                  <AnimatedCounter value={stat.displayValue} duration={1200} />
+                  {loading ? (
+                    <span style={{ display: "inline-block", width: 40, height: 24, borderRadius: 6, background: "var(--border)", animation: "pulse 1.5s ease-in-out infinite" }} />
+                  ) : (
+                    <AnimatedCounter value={stat.displayValue} duration={1200} />
+                  )}
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Stripe Connect Banner */}
+          {connectStatus !== "loading" && connectStatus !== "connected" && (
+            <div style={{
+              padding: "16px 20px",
+              borderRadius: 14,
+              background: connectStatus === "pending"
+                ? "rgba(245,158,11,0.06)"
+                : "rgba(59,130,246,0.06)",
+              border: `1px solid ${connectStatus === "pending" ? "rgba(245,158,11,0.15)" : "rgba(59,130,246,0.15)"}`,
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(12px)",
+              transition: "all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 400ms",
+            }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: connectStatus === "pending" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={connectStatus === "pending" ? "#f59e0b" : "#3b82f6"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: 2 }}>
+                  {connectStatus === "pending" ? "Stripe Connect Pending" : "Connect Your Stripe Account"}
+                </div>
+                <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                  {connectStatus === "pending"
+                    ? "Your Stripe account setup is incomplete. Please finish onboarding to receive payments."
+                    : "Connect your Stripe account to receive payments from your checkout pages."}
+                </div>
+              </div>
+              <button
+                onClick={handleConnectStripe}
+                disabled={connectLoading}
+                className="btn-primary"
+                style={{
+                  padding: "8px 20px",
+                  fontSize: "0.85rem",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                  background: connectStatus === "pending" ? "#f59e0b" : undefined,
+                }}
+              >
+                {connectLoading ? (
+                  <><span className="spinner" style={{ width: 14, height: 14 }} /> Connecting...</>
+                ) : (
+                  <>{connectStatus === "pending" ? "Complete Setup" : "Connect Stripe"}</>
+                )}
+              </button>
+            </div>
+          )}
+          {connectStatus === "connected" && (
+            <div style={{
+              padding: "12px 20px",
+              borderRadius: 14,
+              background: "rgba(34,197,94,0.06)",
+              border: "1px solid rgba(34,197,94,0.15)",
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(12px)",
+              transition: "all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 400ms",
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#22c55e" }}>Stripe Connected</span>
+              <span style={{ fontSize: "0.82rem", color: "var(--muted)" }}>— Payments will be deposited to your Stripe account</span>
+            </div>
+          )}
 
           {/* Tab Switcher */}
           <div style={{
@@ -1035,7 +1179,7 @@ function DashboardContent() {
                   textAlign: "center",
                   padding: "60px 20px",
                   borderRadius: 16,
-                  border: "2px dashed var(--border)",
+                  border: "1px solid var(--border)",
                   background: "var(--surface)",
                 }}>
                   <div style={{
@@ -1178,7 +1322,7 @@ function DashboardContent() {
                 textAlign: "center",
                 padding: "60px 20px",
                 borderRadius: 16,
-                border: "2px dashed var(--border)",
+                border: "1px solid var(--border)",
                 background: "var(--surface)",
               }}
             >

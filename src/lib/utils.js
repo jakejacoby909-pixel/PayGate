@@ -35,7 +35,7 @@ export const FONTS = [
 
 export const TEMPLATES = [
   { id: "minimal", name: "Minimal", description: "Clean and simple", colors: { bg: "#ffffff", card: "#ffffff", accent: "#16a34a" } },
-  { id: "bold", name: "Bold", description: "High contrast and impactful", colors: { bg: "#0f172a", card: "#1e293b", accent: "#3b82f6" } },
+  { id: "bold", name: "Bold", description: "High contrast and impactful", colors: { bg: "#052e16", card: "#14532d", accent: "#16a34a" } },
   { id: "gradient", name: "Gradient", description: "Colorful gradient backgrounds", colors: { bg: "#f0fdf4", card: "#ffffff", accent: "#16a34a" } },
   { id: "glass", name: "Glass", description: "Glassmorphism effects", colors: { bg: "#0a2414", card: "rgba(255,255,255,0.08)", accent: "#22c55e" } },
   { id: "neon", name: "Neon", description: "Dark with neon glow accents", colors: { bg: "#0a0a0a", card: "#141414", accent: "#00ff88" } },
@@ -71,8 +71,8 @@ export function getDefaultPageConfig() {
     price: "",
     currency: "USD",
     template: "bold",
-    accentColor: "#3b82f6",
-    backgroundColor: "#0f172a",
+    accentColor: "#16a34a",
+    backgroundColor: "#052e16",
     backgroundPattern: "none",
     fontFamily: "Inter, system-ui, sans-serif",
     buttonStyle: "pill",

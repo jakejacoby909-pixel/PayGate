@@ -202,8 +202,8 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
       card: { background: "white", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
     },
     bold: {
-      wrapper: { background: "#0f172a", color: "#f8fafc" },
-      card: { background: "#1e293b", border: "1px solid #334155", boxShadow: "0 4px 30px rgba(0,0,0,0.3)" },
+      wrapper: { background: "#052e16", color: "#f0fdf4" },
+      card: { background: "#14532d", border: "1px solid #166534", boxShadow: "0 4px 30px rgba(0,0,0,0.3)" },
     },
     gradient: {
       wrapper: { background: `linear-gradient(135deg, ${accent}15, ${accent}05, #ffffff)`, color: "#1a1a1a" },

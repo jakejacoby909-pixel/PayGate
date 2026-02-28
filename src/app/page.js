@@ -403,7 +403,7 @@ export default function LandingPage() {
               background: "var(--primary)",
               display: "inline-block",
             }} />
-            Now in public beta
+            Now live
           </div>
 
           <h1
@@ -1024,7 +1024,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Beta indicator */}
+      {/* Status indicator */}
       <div className="social-proof-fixed" style={{
         position: "fixed",
         bottom: 20,
@@ -1051,7 +1051,7 @@ export default function LandingPage() {
           display: "inline-block",
           animation: "pulseDot 2s ease-out infinite",
         }} />
-        Free during beta
+        Free plan available
       </div>
     </div>
   );

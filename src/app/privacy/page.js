@@ -111,7 +111,7 @@ export default function PrivacyPage() {
             <li><strong>Objection:</strong> Object to certain processing of your data</li>
             <li><strong>Withdraw Consent:</strong> Withdraw consent where processing is based on consent</li>
           </ul>
-          <p>To exercise any of these rights, contact us at support@paygate.app.</p>
+          <p>To exercise any of these rights, contact us at support@pay-gate.dev.</p>
         </Section>
 
         <Section title="8. Cookies and Local Storage">

@@ -15,6 +15,10 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   if (!configured) {
     return (
@@ -292,7 +296,103 @@ function LoginForm() {
                 isSignUp ? "Create Account" : "Sign In"
               )}
             </button>
+
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={() => { setShowForgotPassword(true); setError(""); }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--primary)",
+                  fontSize: "0.82rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  marginTop: 8,
+                  padding: 0,
+                }}
+              >
+                Forgot password?
+              </button>
+            )}
           </form>
+
+          {/* Forgot Password Form */}
+          {showForgotPassword && (
+            <div className="animate-fade-in" style={{ marginTop: 16, padding: "16px 0 0", borderTop: "1px solid var(--border)" }}>
+              {forgotSent ? (
+                <div style={{
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  background: "rgba(34,197,94,0.08)",
+                  border: "1px solid rgba(34,197,94,0.15)",
+                  fontSize: "0.85rem",
+                  color: "#22c55e",
+                  fontWeight: 500,
+                  textAlign: "center",
+                }}>
+                  Check your email for a password reset link.
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: "0 0 10px" }}>
+                    Enter your email and we&apos;ll send you a reset link.
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="email"
+                      className="input-base"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!forgotEmail) return;
+                        setForgotLoading(true);
+                        try {
+                          const { getSupabaseBrowser } = await import("@/lib/supabase");
+                          const supabase = getSupabaseBrowser();
+                          if (supabase) {
+                            await supabase.auth.resetPasswordForEmail(forgotEmail, {
+                              redirectTo: `${window.location.origin}/auth/callback`,
+                            });
+                          }
+                          setForgotSent(true);
+                        } catch {
+                          setError("Failed to send reset email");
+                        } finally {
+                          setForgotLoading(false);
+                        }
+                      }}
+                      disabled={forgotLoading || !forgotEmail}
+                      className="btn-primary"
+                      style={{ padding: "8px 16px", fontSize: "0.82rem", whiteSpace: "nowrap" }}
+                    >
+                      {forgotLoading ? "Sending..." : "Send Link"}
+                    </button>
+                  </div>
+                </>
+              )}
+              <button
+                onClick={() => { setShowForgotPassword(false); setForgotSent(false); setForgotEmail(""); }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--muted)",
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  marginTop: 8,
+                  padding: 0,
+                }}
+              >
+                Back to sign in
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Back to home */}
