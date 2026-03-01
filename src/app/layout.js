@@ -53,9 +53,6 @@ export const metadata = {
     description:
       "Build beautiful checkout pages powered by Stripe in under 60 seconds. No code, no complexity. Free to start.",
   },
-  alternates: {
-    canonical: "https://pay-gate.dev",
-  },
   verification: {
     google: "f5NnJfq6ZT5YcIpHmsZDFAEwKEvFJmA9U_y_ol6dWQo",
   },

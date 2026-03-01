@@ -9,6 +9,9 @@ export const metadata = {
     "payment page builder cost",
     "cheap payment links",
   ],
+  alternates: {
+    canonical: "https://pay-gate.dev/pricing",
+  },
 };
 
 export default function PricingLayout({ children }) {
