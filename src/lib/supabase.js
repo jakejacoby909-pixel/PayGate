@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 let browserClient = null;
 let adminClient = null;
@@ -13,13 +14,7 @@ export function getSupabaseBrowser() {
     return null;
   }
 
-  browserClient = createClient(url, key, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  });
+  browserClient = createBrowserClient(url, key);
   return browserClient;
 }
 

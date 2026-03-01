@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { rateLimit } from "@/lib/rateLimit";
+
+async function getAuthUser() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const cookieStore = await cookies();
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+    },
+  });
+
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
 
 export async function POST(request) {
   const { success } = rateLimit(request, { limit: 5, windowMs: 60 * 1000 });
@@ -15,11 +35,13 @@ export async function POST(request) {
       return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
     }
 
-    const { userId, userEmail } = await request.json();
-    if (!userId || !userEmail) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: "Must be logged in" }, { status: 401 });
     }
 
+    const userId = user.id;
+    const userEmail = user.email;
     const supabase = getSupabaseAdmin();
 
     // Check if user already has a connect account
