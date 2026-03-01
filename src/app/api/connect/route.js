@@ -86,6 +86,18 @@ export async function POST(request) {
     return NextResponse.json({ url: accountLink.url });
   } catch (error) {
     console.error("Connect onboarding error:", error);
+
+    // Specific error when Stripe Connect isn't enabled on the platform account
+    if (error.message?.includes("signed up for Connect")) {
+      return NextResponse.json(
+        {
+          error: "Stripe Connect is not enabled on this platform. The site owner needs to enable Connect at https://dashboard.stripe.com/settings/connect",
+          connectNotEnabled: true,
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || "Failed to create connect account" },
       { status: 500 }

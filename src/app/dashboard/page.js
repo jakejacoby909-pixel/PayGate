@@ -617,11 +617,12 @@ function DashboardContent() {
       const res = await fetch("/api/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, userEmail: user.email }),
       });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.connectNotEnabled) {
+        toast.error("Stripe Connect needs to be enabled. Check your Stripe dashboard settings.");
       } else {
         toast.error(data.error || "Failed to start Stripe Connect onboarding");
       }

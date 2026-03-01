@@ -60,7 +60,6 @@ function StarRating({ rating }) {
   );
 }
 
-const RANDOM_NAMES = ["Alex M.", "Jordan S.", "Taylor R.", "Casey D.", "Riley T.", "Morgan P.", "Sam W.", "Quinn B.", "Drew K.", "Avery L."];
 
 export default function CheckoutPreview({ config, isPreview = false, onPay }) {
   const [quantity, setQuantity] = useState(1);
@@ -81,9 +80,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
 
-  // Engagement state (live pages only)
-  const [viewerCount, setViewerCount] = useState(0);
-  const [purchaseToast, setPurchaseToast] = useState(null);
+
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 50);
@@ -104,45 +101,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, [config?.enableExitIntent, isPreview]);
 
-  // Live viewer count (only on live pages)
-  useEffect(() => {
-    if (isPreview) return;
-    const base = Math.floor(Math.random() * 9) + 3;
-    setViewerCount(base);
-    const interval = setInterval(() => {
-      setViewerCount((prev) => {
-        const change = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(2, Math.min(15, prev + change));
-      });
-    }, (Math.random() * 5000) + 5000);
-    return () => clearInterval(interval);
-  }, [isPreview]);
 
-  // Recent purchase toasts (only on live pages)
-  useEffect(() => {
-    if (isPreview) return;
-    const initialDelay = (Math.random() * 7000) + 8000;
-    let toastTimeout;
-    let intervalId;
-
-    function showToast() {
-      const name = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
-      const mins = Math.floor(Math.random() * 12) + 1;
-      setPurchaseToast({ name, mins });
-      toastTimeout = setTimeout(() => setPurchaseToast(null), 4000);
-    }
-
-    const startTimeout = setTimeout(() => {
-      showToast();
-      intervalId = setInterval(showToast, (Math.random() * 15000) + 20000);
-    }, initialDelay);
-
-    return () => {
-      clearTimeout(startTimeout);
-      clearTimeout(toastTimeout);
-      clearInterval(intervalId);
-    };
-  }, [isPreview]);
 
   const c = config || {};
   const price = parseFloat(c.price) || 0;
@@ -377,35 +336,6 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
         </div>
       )}
 
-      {/* Live viewer count */}
-      {!isPreview && viewerCount > 0 && (
-        <div style={{
-          position: "fixed",
-          top: c.enablePromoBanner ? 40 : 12,
-          right: 12,
-          zIndex: 30,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "6px 12px",
-          borderRadius: 20,
-          background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
-          backdropFilter: "blur(8px)",
-          fontSize: "0.75rem",
-          fontWeight: 500,
-          color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)",
-        }}>
-          <span style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "#22c55e",
-            display: "inline-block",
-            animation: "pulseDot 2s ease-out infinite",
-          }} />
-          {viewerCount} people viewing this right now
-        </div>
-      )}
 
       <div style={{
         ...ts.card,
@@ -1142,48 +1072,8 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
         </div>
       )}
 
-      {/* Recent Purchase Toast */}
-      {purchaseToast && !isPreview && (
-        <div
-          className="animate-toast-in"
-          style={{
-            position: "fixed",
-            bottom: 20,
-            left: 20,
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "12px 16px",
-            borderRadius: 12,
-            background: "white",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-            border: "1px solid #e5e7eb",
-            maxWidth: 280,
-          }}
-        >
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "rgba(34,197,94,0.1)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-          </div>
-          <div>
-            <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1a1a" }}>
-              {purchaseToast.name} just purchased
-            </div>
-            <div style={{ fontSize: "0.72rem", color: "#999" }}>
-              {purchaseToast.mins} minute{purchaseToast.mins !== 1 ? "s" : ""} ago
-            </div>
-          </div>
-        </div>
-      )}
+
+
     </div>
   );
 }
