@@ -41,26 +41,55 @@ export async function POST(request) {
     }
 
     const userId = user.id;
-    const userEmail = user.email;
     const supabase = getSupabaseAdmin();
+
+    // Allow force-reset if user's Connect is stuck
+    let forceReset = false;
+    try {
+      const body = await request.json();
+      forceReset = body?.force === true;
+    } catch {
+      // No body or invalid JSON — that's fine
+    }
 
     // Check if user already has a connect account
     let connectAccountId = null;
+    let needsNewAccount = false;
     if (supabase) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("stripe_connect_id")
+        .select("stripe_connect_id, connect_onboarding_complete")
         .eq("id", userId)
         .single();
 
       connectAccountId = profile?.stripe_connect_id;
+
+      // Force reset: clear old connect account and start fresh
+      if (forceReset && connectAccountId && !profile?.connect_onboarding_complete) {
+        connectAccountId = null;
+      }
+
+      // If they have a connect ID but onboarding isn't complete, verify the account still works
+      if (connectAccountId && !profile?.connect_onboarding_complete) {
+        try {
+          const existing = await stripe.accounts.retrieve(connectAccountId);
+          // If account exists but has no details submitted, it may be stuck — reuse it
+          if (!existing.details_submitted) {
+            // Account exists but incomplete — generate a fresh onboarding link for it
+          }
+        } catch {
+          // Account doesn't exist in Stripe anymore — create a new one
+          connectAccountId = null;
+          needsNewAccount = true;
+        }
+      }
     }
 
-    // Create a new Stripe Connect account if needed
+    // Create a new Stripe Connect account if needed (without pre-filling email
+    // so users can sign in to their existing Stripe account)
     if (!connectAccountId) {
       const account = await stripe.accounts.create({
         type: "standard",
-        email: userEmail,
         metadata: { userId },
       });
       connectAccountId = account.id;
@@ -69,7 +98,7 @@ export async function POST(request) {
       if (supabase) {
         await supabase
           .from("profiles")
-          .update({ stripe_connect_id: connectAccountId })
+          .update({ stripe_connect_id: connectAccountId, connect_onboarding_complete: false })
           .eq("id", userId);
       }
     }
