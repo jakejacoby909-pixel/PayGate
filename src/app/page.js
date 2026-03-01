@@ -3,6 +3,9 @@ import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import LandingNav from "@/components/LandingNav";
 import HeroEffects from "@/components/HeroEffects";
+import TemplateSwitcher from "@/components/TemplateSwitcher";
+import DemoVideo from "@/components/DemoVideo";
+import FAQ from "@/components/FAQ";
 
 const FEATURES = [
   {
@@ -247,179 +250,12 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Realistic Hero Mockup */}
+        {/* Interactive Template Showcase */}
         <div
           className="animate-fade-in-up delay-500"
           style={{ maxWidth: 1000, margin: "80px auto 0", padding: "0 24px", position: "relative" }}
         >
-          <div className="hero-float shimmer-sweep border-glow" style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            boxShadow: "var(--shadow-xl), 0 0 80px rgba(22,163,74,0.08)",
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            position: "relative",
-          }}>
-            {/* Browser chrome */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "12px 16px",
-              borderBottom: "1px solid var(--border)",
-              background: "var(--surface)",
-            }}>
-              <div style={{ display: "flex", gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27ca40" }} />
-              </div>
-              <div style={{
-                flex: 1,
-                padding: "5px 14px",
-                borderRadius: 6,
-                background: "var(--background)",
-                fontSize: "0.75rem",
-                color: "var(--muted-light)",
-                fontFamily: "var(--font-mono)",
-                textAlign: "center",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-              }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-                pay-gate.dev/checkout/your-product
-              </div>
-            </div>
-            {/* Realistic checkout mockup */}
-            <div className="hero-mockup-area" style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "48px 24px",
-              background: "linear-gradient(135deg, rgba(22,163,74,0.06), rgba(6,95,70,0.04), rgba(217,119,6,0.03))",
-              minHeight: 380,
-              position: "relative",
-            }}>
-              <div className="animate-float" style={{
-                background: "white",
-                borderRadius: 20,
-                padding: 32,
-                boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-                width: "100%",
-                maxWidth: 360,
-                border: "1px solid #eee",
-                position: "relative",
-              }}>
-                {/* Product name */}
-                <div style={{ fontSize: "1.15rem", fontWeight: 700, color: "#1a1a1a", marginBottom: 4, letterSpacing: "-0.01em" }}>
-                  Premium Course
-                </div>
-                <div style={{ fontSize: "0.82rem", color: "#888", marginBottom: 16 }}>
-                  Lifetime access to all modules
-                </div>
-                {/* Price */}
-                <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#16a34a", marginBottom: 20, letterSpacing: "-0.03em" }}>
-                  $49.00
-                </div>
-                {/* Pay button */}
-                <div style={{
-                  padding: "14px 24px",
-                  background: "linear-gradient(135deg, #16a34a, #065f46)",
-                  borderRadius: 9999,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  color: "white",
-                  fontWeight: 700,
-                  fontSize: "0.95rem",
-                  boxShadow: "0 4px 16px rgba(22,163,74,0.3)",
-                  cursor: "default",
-                }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                    <line x1="1" y1="10" x2="23" y2="10" />
-                  </svg>
-                  Pay $49.00
-                </div>
-                {/* Security badges */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 16, opacity: 0.35, fontSize: "0.68rem" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
-                    Secure
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                    SSL
-                  </span>
-                  <span>Powered by Stripe</span>
-                </div>
-              </div>
-
-              {/* Floating badges */}
-              <div className="animate-float-delayed hero-floating-badge" style={{
-                position: "absolute",
-                top: 40,
-                right: 60,
-                padding: "8px 14px",
-                borderRadius: 10,
-                background: "white",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-                border: "1px solid #eee",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}>
-                <span style={{ color: "#16a34a" }}>147 sold</span>
-              </div>
-              <div className="animate-float hero-floating-badge" style={{
-                position: "absolute",
-                bottom: 60,
-                left: 40,
-                padding: "8px 14px",
-                borderRadius: 10,
-                background: "white",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-                border: "1px solid #eee",
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}>
-                {[1,2,3,4,5].map((s) => (
-                  <svg key={s} width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="1">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                ))}
-                <span style={{ marginLeft: 2, color: "#666" }}>4.9</span>
-              </div>
-              <div className="animate-float-delayed hero-floating-badge" style={{
-                position: "absolute",
-                bottom: 40,
-                right: 80,
-                padding: "6px 12px",
-                borderRadius: 8,
-                background: "rgba(22,163,74,0.1)",
-                border: "1px solid rgba(22,163,74,0.25)",
-                fontSize: "0.72rem",
-                fontWeight: 600,
-                color: "#16a34a",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-              }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                SSL Secure
-              </div>
-            </div>
-          </div>
+          <TemplateSwitcher />
         </div>
       </section>
 
@@ -669,6 +505,58 @@ export default function LandingPage() {
               </ScrollReveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Video Demo */}
+      <section style={{
+        padding: "100px 24px",
+        background: "var(--surface)",
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
+        position: "relative",
+        zIndex: 1,
+      }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <ScrollReveal>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                Demo
+              </p>
+              <h2 style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 16px" }}>
+                See PayGate in action
+              </h2>
+              <p style={{ fontSize: "1.05rem", color: "var(--muted)", maxWidth: 520, margin: "0 auto" }}>
+                Watch how to create a professional checkout page in under 60 seconds.
+              </p>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={150}>
+            <DemoVideo videoId={process.env.NEXT_PUBLIC_DEMO_VIDEO_ID} />
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{
+        padding: "100px 24px",
+        position: "relative",
+        zIndex: 1,
+      }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <ScrollReveal>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+                FAQ
+              </p>
+              <h2 style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: 0 }}>
+                Common questions
+              </h2>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={100}>
+            <FAQ />
+          </ScrollReveal>
         </div>
       </section>
 
