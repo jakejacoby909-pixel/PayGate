@@ -14,6 +14,9 @@ import {
   TEMPLATES,
   BUTTON_STYLES,
   BACKGROUND_PATTERNS,
+  CARD_STYLES,
+  IMAGE_LAYOUTS,
+  GRADIENT_PRESETS,
   getCheckoutUrl,
 } from "@/lib/utils";
 import { savePage, syncPageToSupabase, getAllPages } from "@/lib/storage";
@@ -916,6 +919,142 @@ export default function Builder({ existingConfig }) {
                   ))}
                 </div>
               </div>
+
+              {/* Card Style */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>
+                  Card Style
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
+                  {CARD_STYLES.map((cs) => (
+                    <button
+                      key={cs.id}
+                      type="button"
+                      onClick={() => updateConfig({ cardStyle: cs.id })}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: config.cardStyle === cs.id ? "2px solid #16a34a" : "2px solid rgba(255,255,255,0.06)",
+                        background: config.cardStyle === cs.id ? "rgba(22,163,74,0.08)" : "rgba(255,255,255,0.02)",
+                        cursor: "pointer",
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        color: config.cardStyle === cs.id ? "#22c55e" : "rgba(255,255,255,0.5)",
+                        transition: "all 0.15s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {cs.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Layout */}
+              {(config.productImages || []).length > 0 && (
+                <div>
+                  <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>
+                    Image Layout
+                  </label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {IMAGE_LAYOUTS.map((il) => (
+                      <button
+                        key={il.id}
+                        type="button"
+                        onClick={() => updateConfig({ imageLayout: il.id })}
+                        style={{
+                          flex: 1,
+                          padding: "8px 10px",
+                          borderRadius: 8,
+                          border: config.imageLayout === il.id ? "2px solid #16a34a" : "2px solid rgba(255,255,255,0.06)",
+                          background: config.imageLayout === il.id ? "rgba(22,163,74,0.08)" : "rgba(255,255,255,0.02)",
+                          cursor: "pointer",
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          color: config.imageLayout === il.id ? "#22c55e" : "rgba(255,255,255,0.5)",
+                          transition: "all 0.15s",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {il.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Gradient Preset */}
+              <FormField label="Background Gradient">
+                <select
+                  className="builder-input"
+                  value={config.gradientPreset || "none"}
+                  onChange={(e) => updateConfig({ gradientPreset: e.target.value })}
+                >
+                  {GRADIENT_PRESETS.map((gp) => (
+                    <option key={gp.id} value={gp.id}>{gp.label}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              {/* Badge */}
+              <FormField label="Custom Badge Text">
+                <input
+                  className="builder-input"
+                  value={config.badgeText || ""}
+                  onChange={(e) => updateConfig({ badgeText: e.target.value })}
+                  placeholder="e.g. BEST SELLER, NEW, LIMITED"
+                />
+              </FormField>
+              {config.badgeText && (
+                <ColorPicker
+                  label="Badge Color"
+                  value={config.badgeColor || "#16a34a"}
+                  onChange={(badgeColor) => updateConfig({ badgeColor })}
+                />
+              )}
+
+              {/* Price Size */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>
+                  Price Display Size
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    { id: "small", label: "Small" },
+                    { id: "large", label: "Large" },
+                    { id: "hero", label: "Hero" },
+                  ].map((ps) => (
+                    <button
+                      key={ps.id}
+                      type="button"
+                      onClick={() => updateConfig({ priceSize: ps.id })}
+                      style={{
+                        flex: 1,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: (config.priceSize || "large") === ps.id ? "2px solid #16a34a" : "2px solid rgba(255,255,255,0.06)",
+                        background: (config.priceSize || "large") === ps.id ? "rgba(22,163,74,0.08)" : "rgba(255,255,255,0.02)",
+                        cursor: "pointer",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: (config.priceSize || "large") === ps.id ? "#22c55e" : "rgba(255,255,255,0.5)",
+                        transition: "all 0.15s",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {ps.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Animated Button */}
+              <ToggleField
+                label="Animated Buy Button"
+                description="Subtle pulse animation on the pay button"
+                value={config.enableAnimatedButton || false}
+                onChange={(v) => updateConfig({ enableAnimatedButton: v })}
+              />
             </div>
           )}
 

@@ -1414,8 +1414,14 @@ function DashboardContent() {
                   <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
                     {[
                       { title: "Edit", href: `/builder?id=${page.id}`, icon: "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z", isLink: true },
-                      { title: "View", href: `/checkout/${page.id}`, icon: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3", isLink: true, external: true },
-                      { title: "Share", icon: "M18 5a3 3 0 100-6 3 3 0 000 6z M6 12a3 3 0 100-6 3 3 0 000 6z M18 19a3 3 0 100-6 3 3 0 000 6z M8.59 13.51l6.83 3.98 M15.41 6.51l-6.82 3.98", onClick: () => setShareUrl(getCheckoutUrl(page.id)) },
+                      { title: "View", href: connectStatus === "connected" ? `/checkout/${page.id}` : null, icon: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3", isLink: connectStatus === "connected", external: true, onClick: connectStatus !== "connected" ? () => toast.error("Connect your Stripe account first to view your checkout page.") : undefined },
+                      { title: "Share", icon: "M18 5a3 3 0 100-6 3 3 0 000 6z M6 12a3 3 0 100-6 3 3 0 000 6z M18 19a3 3 0 100-6 3 3 0 000 6z M8.59 13.51l6.83 3.98 M15.41 6.51l-6.82 3.98", onClick: () => {
+                        if (connectStatus !== "connected") {
+                          toast.error("Connect your Stripe account before sharing. Click 'Connect Stripe' or 'Complete Setup' above.");
+                          return;
+                        }
+                        setShareUrl(getCheckoutUrl(page.id));
+                      } },
                       { title: "Duplicate", icon: "M9 9h13v13H9z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1", onClick: () => handleDuplicate(page.id) },
                       { title: "Delete", icon: "M3 6h18 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2", onClick: () => setDeleteConfirm(page.id), danger: true },
                     ].map((action) => {

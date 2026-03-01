@@ -63,6 +63,33 @@ export const BACKGROUND_PATTERNS = [
   { id: "gradient", label: "Gradient" },
 ];
 
+export const CARD_STYLES = [
+  { id: "default", label: "Default", shadow: "0 4px 24px rgba(0,0,0,0.08)", radius: "16px" },
+  { id: "elevated", label: "Elevated", shadow: "0 12px 40px rgba(0,0,0,0.15)", radius: "20px" },
+  { id: "flat", label: "Flat", shadow: "none", radius: "12px" },
+  { id: "bordered", label: "Bordered", shadow: "none", radius: "12px", border: "2px solid" },
+  { id: "glass", label: "Glass", shadow: "0 8px 32px rgba(0,0,0,0.1)", radius: "20px" },
+];
+
+export const IMAGE_LAYOUTS = [
+  { id: "top", label: "Top" },
+  { id: "left", label: "Left" },
+  { id: "background", label: "Background" },
+  { id: "none", label: "Hidden" },
+];
+
+export const GRADIENT_PRESETS = [
+  { id: "none", label: "None", value: "" },
+  { id: "ocean", label: "Ocean", value: "linear-gradient(135deg, #0c4a6e, #0ea5e9)" },
+  { id: "sunset", label: "Sunset", value: "linear-gradient(135deg, #7c2d12, #f97316)" },
+  { id: "forest", label: "Forest", value: "linear-gradient(135deg, #052e16, #16a34a)" },
+  { id: "purple", label: "Purple", value: "linear-gradient(135deg, #3b0764, #a855f7)" },
+  { id: "midnight", label: "Midnight", value: "linear-gradient(135deg, #0f172a, #334155)" },
+  { id: "rose", label: "Rose", value: "linear-gradient(135deg, #4c0519, #f43f5e)" },
+  { id: "emerald", label: "Emerald", value: "linear-gradient(135deg, #022c22, #10b981)" },
+  { id: "amber", label: "Amber", value: "linear-gradient(135deg, #451a03, #f59e0b)" },
+];
+
 export function getDefaultPageConfig() {
   return {
     id: "",
@@ -116,6 +143,13 @@ export function getDefaultPageConfig() {
     promoBannerText: "Limited time offer - Save 20% today!",
     enablePasswordProtection: false,
     passwordProtectionCode: "",
+    cardStyle: "default",
+    imageLayout: "top",
+    gradientPreset: "none",
+    badgeText: "",
+    badgeColor: "#16a34a",
+    enableAnimatedButton: false,
+    priceSize: "large",
   };
 }
 

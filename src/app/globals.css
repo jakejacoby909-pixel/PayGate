@@ -161,6 +161,14 @@ body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+  50% { transform: scale(1.02); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
 @keyframes blob {
   0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
   25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }

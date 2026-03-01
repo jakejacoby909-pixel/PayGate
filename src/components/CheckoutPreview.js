@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { formatPrice, timeUntil } from "@/lib/utils";
+import { formatPrice, timeUntil, CARD_STYLES, GRADIENT_PRESETS } from "@/lib/utils";
 
 function CountdownDisplay({ date }) {
   const [time, setTime] = useState(null);
@@ -193,12 +193,24 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
   const template = c.template || "minimal";
   const ts = templateStyles[template] || templateStyles.minimal;
   const isDark = template === "bold" || template === "glass" || template === "neon";
-  const cardRadius = template === "brutalist" ? 4 : 20;
+
+  // Card style overrides
+  const cardStyleDef = CARD_STYLES.find((cs) => cs.id === c.cardStyle) || CARD_STYLES[0];
+  const cardRadius = template === "brutalist" ? 4 : parseInt(cardStyleDef.radius) || 20;
+  const cardShadow = cardStyleDef.shadow !== undefined ? cardStyleDef.shadow : ts.card?.boxShadow;
+
+  // Gradient preset
+  const gradientDef = GRADIENT_PRESETS.find((gp) => gp.id === c.gradientPreset);
+  const gradientBg = gradientDef?.value || "";
+
+  // Price size
+  const priceFontSize = c.priceSize === "hero" ? "2.2rem" : c.priceSize === "small" ? "1.2rem" : "1.6rem";
 
   return (
     <div
       style={{
         ...ts.wrapper,
+        ...(gradientBg ? { background: gradientBg } : {}),
         fontFamily: font,
         minHeight: isPreview ? "100%" : "100vh",
         display: "flex",
@@ -339,6 +351,9 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
 
       <div style={{
         ...ts.card,
+        ...(cardShadow !== undefined ? { boxShadow: cardShadow } : {}),
+        ...(c.cardStyle === "glass" ? { background: "rgba(255,255,255,0.08)", backdropFilter: "blur(24px)" } : {}),
+        ...(c.cardStyle === "bordered" ? { border: `2px solid ${accent}`, boxShadow: "none" } : {}),
         borderRadius: cardRadius,
         width: "100%",
         maxWidth: 440,
@@ -350,6 +365,26 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
         transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
         marginTop: !isPreview && c.enablePromoBanner ? 40 : 0,
       }}>
+        {/* Custom Badge */}
+        {c.badgeText && (
+          <div style={{
+            position: "absolute",
+            top: -10,
+            right: 16,
+            background: c.badgeColor || accent,
+            color: "white",
+            padding: "4px 12px",
+            borderRadius: 6,
+            fontSize: "0.68rem",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            boxShadow: `0 2px 8px ${c.badgeColor || accent}44`,
+            zIndex: 2,
+          }}>
+            {c.badgeText}
+          </div>
+        )}
         {/* Logo */}
         {c.logo && (
           <div style={{
@@ -547,7 +582,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
         }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
             <span style={{
-              fontSize: "2rem",
+              fontSize: priceFontSize,
               fontWeight: 800,
               letterSpacing: "-0.03em",
               color: template === "brutalist" ? "inherit" : accent,
@@ -844,7 +879,7 @@ export default function CheckoutPreview({ config, isPreview = false, onPay }) {
           type="button"
           onClick={handlePay}
           disabled={isProcessing || !c.productName}
-          className="glow-btn"
+          className={`glow-btn${c.enableAnimatedButton ? " animate-pulse-subtle" : ""}`}
           style={{
             width: "100%",
             padding: "14px 24px",
