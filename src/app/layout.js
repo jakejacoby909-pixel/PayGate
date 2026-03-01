@@ -56,6 +56,9 @@ export const metadata = {
   alternates: {
     canonical: "https://pay-gate.dev",
   },
+  verification: {
+    google: "f5NnJfq6ZT5YcIpHmsZDFAEwKEvFJmA9U_y_ol6dWQo",
+  },
 };
 
 export default function RootLayout({ children }) {
