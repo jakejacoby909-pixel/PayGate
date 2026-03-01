@@ -15,15 +15,33 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   metadataBase: new URL("https://pay-gate.dev"),
-  title: "PayGate — Instant Checkout Pages",
-  description: "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required.",
-  keywords: ["checkout", "payment", "stripe", "hosted checkout", "payment links", "checkout page builder"],
+  title: {
+    default: "PayGate — Checkout Page Builder | Create Payment Pages in Seconds",
+    template: "%s | PayGate",
+  },
+  description:
+    "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required. 8 templates, analytics, countdown timers, coupons, and more. Free to start.",
+  keywords: [
+    "checkout page builder",
+    "payment page builder",
+    "stripe checkout page",
+    "hosted checkout",
+    "payment links",
+    "create checkout page",
+    "sell online",
+    "no code checkout",
+    "stripe payment page",
+    "online payment page",
+    "checkout page creator",
+    "payment link generator",
+  ],
   icons: {
     icon: "/icon.svg",
   },
   openGraph: {
-    title: "PayGate — Instant Checkout Pages",
-    description: "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required.",
+    title: "PayGate — Create Checkout Pages in Seconds",
+    description:
+      "Build beautiful, hosted checkout pages powered by Stripe. 8 templates, built-in analytics, urgency tools, and more. No code required. Free to start.",
     url: "https://pay-gate.dev",
     siteName: "PayGate",
     type: "website",
@@ -31,8 +49,12 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PayGate — Instant Checkout Pages",
-    description: "Create beautiful, hosted checkout pages powered by Stripe in seconds. No code required.",
+    title: "PayGate — Create Checkout Pages in Seconds",
+    description:
+      "Build beautiful checkout pages powered by Stripe in under 60 seconds. No code, no complexity. Free to start.",
+  },
+  alternates: {
+    canonical: "https://pay-gate.dev",
   },
 };
 
