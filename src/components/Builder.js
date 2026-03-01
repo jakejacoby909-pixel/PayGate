@@ -20,7 +20,7 @@ import {
   getCheckoutUrl,
 } from "@/lib/utils";
 import { savePage, syncPageToSupabase, getAllPages } from "@/lib/storage";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth, isAdmin } from "@/components/AuthProvider";
 import { hasFeature, hasTemplate, canCreatePage, PREMIUM_TEMPLATES } from "@/lib/plans";
 
 const AUTO_SAVE_DELAY = 3000;
@@ -152,6 +152,8 @@ export default function Builder({ existingConfig }) {
 
   async function checkConnectStatus() {
     if (!user?.id) return false;
+    // Platform admin doesn't need Connect — payments go directly to their Stripe account
+    if (isAdmin(user)) return true;
     try {
       const { getSupabaseBrowser } = await import("@/lib/supabase");
       const supabase = getSupabaseBrowser();

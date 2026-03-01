@@ -81,8 +81,10 @@ export async function POST(request) {
     }
 
     // Look up page owner's Stripe Connect account and plan
+    const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "jakejacoby909@gmail.com";
     let sellerConnectId = null;
     let feePercent = 0.05; // 5% default
+    let isPageOwnerAdmin = false;
     const supabase = getSupabaseAdmin();
     if (supabase && pageId) {
       const { data: pageData } = await supabase
@@ -94,14 +96,17 @@ export async function POST(request) {
       if (pageData?.user_id) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("plan, stripe_connect_id, connect_onboarding_complete")
+          .select("plan, email, stripe_connect_id, connect_onboarding_complete")
           .eq("id", pageData.user_id)
           .single();
 
         if (profile?.plan === "pro") {
           feePercent = 0.02; // 2% for pro
         }
-        if (profile?.stripe_connect_id && profile?.connect_onboarding_complete) {
+        // Platform admin's pages don't need Connect — payments go directly to the platform account
+        if (profile?.email === ADMIN_EMAIL) {
+          isPageOwnerAdmin = true;
+        } else if (profile?.stripe_connect_id && profile?.connect_onboarding_complete) {
           sellerConnectId = profile.stripe_connect_id;
         }
       }

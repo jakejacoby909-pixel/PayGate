@@ -590,6 +590,11 @@ function DashboardContent() {
       setConnectStatus("not_connected");
       return;
     }
+    // Platform admin doesn't need Connect — payments go directly to their Stripe account
+    if (isAdmin(user)) {
+      setConnectStatus("connected");
+      return;
+    }
     try {
       const { getSupabaseBrowser } = await import("@/lib/supabase");
       const supabase = getSupabaseBrowser();
