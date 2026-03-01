@@ -4,7 +4,6 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import LandingNav from "@/components/LandingNav";
 import HeroEffects from "@/components/HeroEffects";
 import TemplateSwitcher from "@/components/TemplateSwitcher";
-import DemoVideo from "@/components/DemoVideo";
 import FAQ from "@/components/FAQ";
 
 const FEATURES = [
@@ -505,35 +504,6 @@ export default function LandingPage() {
               </ScrollReveal>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Video Demo */}
-      <section style={{
-        padding: "100px 24px",
-        background: "var(--surface)",
-        borderTop: "1px solid var(--border)",
-        borderBottom: "1px solid var(--border)",
-        position: "relative",
-        zIndex: 1,
-      }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <ScrollReveal>
-            <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-                Demo
-              </p>
-              <h2 style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 16px" }}>
-                See PayGate in action
-              </h2>
-              <p style={{ fontSize: "1.05rem", color: "var(--muted)", maxWidth: 520, margin: "0 auto" }}>
-                Watch how to create a professional checkout page in under 60 seconds.
-              </p>
-            </div>
-          </ScrollReveal>
-          <ScrollReveal delay={150}>
-            <DemoVideo videoId={process.env.NEXT_PUBLIC_DEMO_VIDEO_ID} />
-          </ScrollReveal>
         </div>
       </section>
 
