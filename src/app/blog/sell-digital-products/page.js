@@ -41,9 +41,22 @@ const PLATFORMS = [
   { name: "Shopify", fee: "$39/mo + payment fees", pros: "Full ecommerce, physical + digital", best: "Scaling a brand" },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "How to Sell Digital Products Online in 2026 (Step-by-Step)",
+  description: "Learn how to sell digital products online in 2026. From choosing a product to setting up checkout pages and getting your first sale.",
+  datePublished: "2026-03-01",
+  dateModified: "2026-03-01",
+  author: { "@type": "Organization", name: "PayGate", url: "https://pay-gate.dev" },
+  publisher: { "@type": "Organization", name: "Jacoby Digital LLC" },
+  mainEntityOfPage: "https://pay-gate.dev/blog/sell-digital-products",
+};
+
 export default function SellDigitalProductsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Nav */}
       <nav style={{
         padding: "16px 24px",

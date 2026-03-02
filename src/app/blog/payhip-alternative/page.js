@@ -37,9 +37,22 @@ const FEATURES = [
   { feature: "Digital file hosting", payhip: "Yes", paygate: "Yes" },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "PayGate vs Payhip: Which Is Better for Selling Digital Products?",
+  description: "Compare PayGate and Payhip side-by-side. See fees, features, and which platform gives you more for less in 2026.",
+  datePublished: "2026-03-01",
+  dateModified: "2026-03-01",
+  author: { "@type": "Organization", name: "PayGate", url: "https://pay-gate.dev" },
+  publisher: { "@type": "Organization", name: "Jacoby Digital LLC" },
+  mainEntityOfPage: "https://pay-gate.dev/blog/payhip-alternative",
+};
+
 export default function PayhipAlternativePage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Nav */}
       <nav style={{
         padding: "16px 24px",

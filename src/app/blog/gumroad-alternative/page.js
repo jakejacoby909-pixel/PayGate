@@ -46,9 +46,34 @@ const FEATURES = [
   { feature: "Branding removal", gumroad: "No", paygate: "Yes (Pro)" },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "PayGate vs Gumroad: Why Creators Are Switching in 2026",
+  description: "Compare PayGate and Gumroad side-by-side. See the fee breakdown, feature comparison, and find out how much you could save.",
+  datePublished: "2026-03-01",
+  dateModified: "2026-03-01",
+  author: { "@type": "Organization", name: "PayGate", url: "https://pay-gate.dev" },
+  publisher: { "@type": "Organization", name: "Jacoby Digital LLC" },
+  mainEntityOfPage: "https://pay-gate.dev/blog/gumroad-alternative",
+};
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    { "@type": "Question", name: "Do I need a Stripe account to use PayGate?", acceptedAnswer: { "@type": "Answer", text: "Yes. PayGate connects directly to your Stripe account so you receive payments instantly. If you don't have one, Stripe setup takes about 5 minutes." }},
+    { "@type": "Question", name: "Is PayGate cheaper than Gumroad?", acceptedAnswer: { "@type": "Answer", text: "Yes. Gumroad charges 10% + $0.50 per sale. PayGate's free plan charges 5% with no per-sale fee, and Pro is $12/month with just 2%. On $10,000/month in sales, you'd save $788/month vs Gumroad." }},
+    { "@type": "Question", name: "Is there a free plan?", acceptedAnswer: { "@type": "Answer", text: "Yes. PayGate's free plan gives you 3 checkout pages, 5 templates, and charges a 5% platform fee (half of Gumroad). Upgrade to Pro ($12/month) for unlimited pages, all templates, and just 2% fees." }},
+    { "@type": "Question", name: "What about Gumroad's Discover feature?", acceptedAnswer: { "@type": "Answer", text: "Gumroad Discover sends some organic traffic, but most successful sellers drive their own traffic via Medium, social media, or SEO anyway. PayGate gives you better checkout tools to convert that traffic at a lower cost." }},
+  ],
+};
+
 export default function GumroadAlternativePage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       {/* Nav */}
       <nav style={{
         padding: "16px 24px",
