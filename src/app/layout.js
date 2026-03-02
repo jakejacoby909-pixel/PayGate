@@ -34,6 +34,9 @@ export const metadata = {
     "online payment page",
     "checkout page creator",
     "payment link generator",
+    "gumroad alternative",
+    "cheaper than gumroad",
+    "sell digital products",
   ],
   icons: {
     icon: "/icon.svg",

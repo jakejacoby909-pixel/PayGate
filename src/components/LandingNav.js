@@ -244,6 +244,12 @@ export default function LandingNav() {
                   Pricing
                 </Link>
                 <Link
+                  href="/blog"
+                  style={{ fontSize: "0.9rem", color: "var(--muted)", textDecoration: "none", fontWeight: 500, padding: "8px 16px", borderRadius: 8, transition: "color 0.15s" }}
+                >
+                  Blog
+                </Link>
+                <Link
                   href="/dashboard"
                   style={{ fontSize: "0.9rem", color: "var(--muted)", textDecoration: "none", fontWeight: 500, padding: "8px 16px", borderRadius: 8, transition: "color 0.15s" }}
                 >
@@ -285,6 +291,7 @@ export default function LandingNav() {
             <>
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
               <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+              <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
               <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
             </>
           )}
