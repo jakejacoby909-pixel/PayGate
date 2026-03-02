@@ -12,12 +12,29 @@ export const metadata = {
 
 const POSTS = [
   {
+    slug: "sell-digital-products",
+    title: "How to Sell Digital Products Online in 2026 (Step-by-Step)",
+    description: "From choosing your product to getting your first sale. A free, comprehensive guide to building a digital product business.",
+    date: "March 1, 2026",
+    tag: "Guide",
+    tagColor: "#d97706",
+    readTime: "7 min read",
+  },
+  {
     slug: "gumroad-alternative",
     title: "PayGate vs Gumroad: Why Creators Are Switching in 2026",
     description: "A detailed comparison of fees, features, and flexibility. See how much you could save by switching from Gumroad to PayGate.",
     date: "March 1, 2026",
     tag: "Comparison",
     readTime: "5 min read",
+  },
+  {
+    slug: "payhip-alternative",
+    title: "PayGate vs Payhip: Which Is Better for Selling Digital Products?",
+    description: "Compare fees, features, and templates. Same 2% fee tier, but PayGate Pro costs $17/month less.",
+    date: "March 1, 2026",
+    tag: "Comparison",
+    readTime: "4 min read",
   },
 ];
 
@@ -93,11 +110,11 @@ export default function BlogPage() {
                 <span style={{
                   fontSize: "0.7rem",
                   fontWeight: 700,
-                  color: "var(--primary)",
-                  background: "rgba(22,163,74,0.08)",
+                  color: post.tagColor || "var(--primary)",
+                  background: post.tagColor ? `${post.tagColor}14` : "rgba(22,163,74,0.08)",
                   padding: "3px 10px",
                   borderRadius: 6,
-                  border: "1px solid rgba(22,163,74,0.15)",
+                  border: post.tagColor ? `1px solid ${post.tagColor}26` : "1px solid rgba(22,163,74,0.15)",
                 }}>
                   {post.tag}
                 </span>
