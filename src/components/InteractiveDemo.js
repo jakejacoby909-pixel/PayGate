@@ -64,7 +64,7 @@ function CountdownTimer({ accent, isDark }) {
 }
 
 export default function InteractiveDemo() {
-  const [templateIdx, setTemplateIdx] = useState(0);
+  const [templateIdx, setTemplateIdx] = useState(2);
   const [enabled, setEnabled] = useState(new Set(["countdown", "social", "guarantee"]));
   const [paused, setPaused] = useState(false);
 
