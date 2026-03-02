@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 const DEMO_TEMPLATES = [
   { id: "minimal", name: "Minimal", bg: "#ffffff", card: "#ffffff", accent: "#16a34a", text: "#1a1a1a", muted: "#666", border: "#e5e7eb", isDark: false },
@@ -63,20 +63,13 @@ function CountdownTimer({ accent, isDark }) {
   );
 }
 
+function isDark(t) {
+  return t.isDark;
+}
+
 export default function InteractiveDemo() {
   const [templateIdx, setTemplateIdx] = useState(2);
   const [enabled, setEnabled] = useState(new Set(["countdown", "social", "guarantee"]));
-  const [paused, setPaused] = useState(false);
-
-  const cycleTemplate = useCallback(() => {
-    setTemplateIdx((i) => (i + 1) % DEMO_TEMPLATES.length);
-  }, []);
-
-  useEffect(() => {
-    if (paused) return;
-    const timer = setInterval(cycleTemplate, 4000);
-    return () => clearInterval(timer);
-  }, [paused, cycleTemplate]);
 
   const t = DEMO_TEMPLATES[templateIdx];
   const isBrutalist = t.id === "brutalist";
@@ -84,7 +77,6 @@ export default function InteractiveDemo() {
   const btnRadius = isBrutalist ? 4 : 9999;
 
   function toggle(id) {
-    setPaused(true);
     setEnabled((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -97,10 +89,82 @@ export default function InteractiveDemo() {
 
   return (
     <div>
+      {/* Mobile controls — templates + features shown above the preview on small screens */}
+      <div className="demo-mobile-controls" style={{ display: "none", marginBottom: 20 }}>
+        {/* Template pills */}
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          justifyContent: "center",
+          marginBottom: 16,
+        }}>
+          {DEMO_TEMPLATES.map((tmpl, i) => (
+            <button
+              key={tmpl.id}
+              onClick={() => setTemplateIdx(i)}
+              style={{
+                padding: "7px 14px",
+                borderRadius: 9999,
+                border: i === templateIdx ? `2px solid ${tmpl.accent}` : "2px solid rgba(255,255,255,0.08)",
+                background: i === templateIdx ? `${tmpl.accent}15` : "rgba(255,255,255,0.03)",
+                color: i === templateIdx ? tmpl.accent : "rgba(255,255,255,0.4)",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                fontFamily: "inherit",
+              }}
+            >
+              {tmpl.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Feature toggles as compact pills */}
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          justifyContent: "center",
+        }}>
+          {FEATURES.map((f) => {
+            const isOn = has(f.id);
+            return (
+              <button
+                key={f.id}
+                onClick={() => toggle(f.id)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: 9999,
+                  border: isOn ? "1.5px solid var(--primary)" : "1.5px solid rgba(255,255,255,0.08)",
+                  background: isOn ? "rgba(22,163,74,0.12)" : "rgba(255,255,255,0.03)",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  fontFamily: "inherit",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isOn ? "var(--primary)" : "var(--muted)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d={f.icon} />
+                </svg>
+                <span style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  color: isOn ? "var(--primary)" : "var(--muted)",
+                }}>
+                  {f.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 24, alignItems: "stretch" }}
         className="demo-layout"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
       >
         {/* Checkout Preview */}
         <div style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -120,7 +184,7 @@ export default function InteractiveDemo() {
               borderBottom: "1px solid var(--border)",
               background: "var(--surface)",
             }}>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div className="demo-browser-dots" style={{ display: "flex", gap: 6 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27ca40" }} />
@@ -150,7 +214,6 @@ export default function InteractiveDemo() {
             <div style={{
               padding: "32px 20px",
               background: t.bg,
-              minHeight: 520,
               transition: "background 0.5s ease",
               position: "relative",
               overflow: "hidden",
@@ -549,7 +612,7 @@ export default function InteractiveDemo() {
           </div>
         </div>
 
-        {/* Controls Panel */}
+        {/* Desktop Controls Panel — hidden on mobile */}
         <div className="demo-controls" style={{
           width: 280,
           flexShrink: 0,
@@ -573,7 +636,7 @@ export default function InteractiveDemo() {
               {DEMO_TEMPLATES.map((tmpl, i) => (
                 <button
                   key={tmpl.id}
-                  onClick={() => { setTemplateIdx(i); setPaused(true); }}
+                  onClick={() => setTemplateIdx(i)}
                   style={{
                     padding: "8px 12px",
                     borderRadius: 10,
@@ -719,40 +782,6 @@ export default function InteractiveDemo() {
           </div>
         </div>
       </div>
-
-      {/* Template selector pills (mobile-friendly alternative) */}
-      <div className="demo-template-pills" style={{
-        display: "none",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: 6,
-        marginTop: 16,
-      }}>
-        {DEMO_TEMPLATES.map((tmpl, i) => (
-          <button
-            key={tmpl.id}
-            onClick={() => { setTemplateIdx(i); setPaused(true); }}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 9999,
-              border: i === templateIdx ? `1.5px solid ${tmpl.accent}` : "1.5px solid rgba(255,255,255,0.08)",
-              background: i === templateIdx ? `${tmpl.accent}15` : "rgba(255,255,255,0.03)",
-              color: i === templateIdx ? tmpl.accent : "rgba(255,255,255,0.4)",
-              fontSize: "0.72rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              fontFamily: "inherit",
-            }}
-          >
-            {tmpl.name}
-          </button>
-        ))}
-      </div>
     </div>
   );
-}
-
-function isDark(t) {
-  return t.isDark;
 }

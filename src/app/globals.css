@@ -935,16 +935,17 @@ body {
 /* ===== RESPONSIVE ===== */
 .nav-hamburger {
   display: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
   cursor: pointer;
   align-items: center;
   justify-content: center;
   color: var(--foreground);
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-nav-overlay {
@@ -1051,17 +1052,10 @@ body {
     flex-direction: column !important;
   }
   .demo-controls {
-    width: 100% !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 16px !important;
+    display: none !important;
   }
-  .demo-controls > div {
-    flex: 1 1 240px;
-    min-width: 200px;
-  }
-  .demo-template-pills {
-    display: flex !important;
+  .demo-mobile-controls {
+    display: block !important;
   }
 }
 

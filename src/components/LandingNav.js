@@ -274,34 +274,87 @@ export default function LandingNav() {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)}>
-          <button className="mobile-nav-close" onClick={() => setMobileMenuOpen(false)}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <button className="mobile-nav-close" onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          {!loading && user && isAdmin(user) && (
-            <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</Link>
+
+          {/* User info when logged in */}
+          {!loading && user && (
+            <div onClick={(e) => e.stopPropagation()} style={{
+              textAlign: "center",
+              marginBottom: 16,
+              padding: "0 20px",
+            }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(22,163,74,0.3), rgba(6,95,70,0.3))",
+                border: "1.5px solid rgba(22,163,74,0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 10px",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: "1.1rem",
+              }}>
+                {(user.email || "U")[0].toUpperCase()}
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", marginBottom: 2 }}>
+                {user.email}
+              </div>
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                padding: "3px 10px",
+                borderRadius: 6,
+                background: isPro ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.06)",
+                color: isPro ? "#a78bfa" : "rgba(255,255,255,0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}>
+                {isPro ? "Pro Plan" : "Free Plan"}
+              </div>
+            </div>
           )}
-          {!loading && user ? (
-            <>
-              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
-              <button className="mobile-nav-link" onClick={() => { signOut(); setMobileMenuOpen(false); }}>Sign Out</button>
-            </>
-          ) : !loading && (
-            <>
-              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
-              <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
-              <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
-              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
-            </>
-          )}
-          <Link
-            href="/builder"
-            onClick={() => setMobileMenuOpen(false)}
-            style={{ background: "var(--primary)", borderRadius: 9999, marginTop: 12 }}
-          >
-            Get Started
-          </Link>
+
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 220 }}>
+            {!loading && user && isAdmin(user) && (
+              <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</Link>
+            )}
+            {!loading && user ? (
+              <>
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
+                <Link href="/builder" onClick={() => setMobileMenuOpen(false)}>Create Page</Link>
+                <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+                <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
+                <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "8px 0" }} />
+                <button className="mobile-nav-link" onClick={() => { signOut(); setMobileMenuOpen(false); }} style={{ color: "#ef4444" }}>
+                  Sign Out
+                </button>
+              </>
+            ) : !loading && (
+              <>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+                <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</Link>
+                <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</Link>
+                <Link
+                  href="/builder"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{ background: "var(--primary)", borderRadius: 9999, marginTop: 12 }}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
     </>
