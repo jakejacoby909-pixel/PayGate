@@ -1040,6 +1040,31 @@ body {
   border-bottom-color: var(--primary);
 }
 
+/* Interactive demo animation */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .demo-layout {
+    flex-direction: column !important;
+  }
+  .demo-controls {
+    width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+  }
+  .demo-controls > div {
+    flex: 1 1 240px;
+    min-width: 200px;
+  }
+  .demo-template-pills {
+    display: flex !important;
+  }
+}
+
 @media (max-width: 768px) {
   .nav-hamburger { display: flex; }
   .nav-desktop-links { display: none !important; }
