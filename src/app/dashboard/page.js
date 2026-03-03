@@ -548,6 +548,9 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState("pages");
   const [revenueData, setRevenueData] = useState(null);
   const [revenueLoading, setRevenueLoading] = useState(false);
+  const [referralData, setReferralData] = useState(null);
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -654,9 +657,27 @@ function DashboardContent() {
     }
   }
 
+  async function loadReferralData() {
+    if (!user) return;
+    setReferralLoading(true);
+    try {
+      const res = await fetch(`/api/referrals?userId=${user.id}`);
+      if (res.ok) {
+        setReferralData(await res.json());
+      }
+    } catch {
+      // best-effort
+    } finally {
+      setReferralLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (activeTab === "revenue" && !revenueData && configured && user) {
       loadRevenue();
+    }
+    if (activeTab === "referrals" && !referralData && user) {
+      loadReferralData();
     }
   }, [activeTab, configured, user]);
 
@@ -781,7 +802,7 @@ function DashboardContent() {
             <div>
             <h1 style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0, letterSpacing: "-0.02em" }}>Dashboard</h1>
             <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0, marginTop: 2 }}>
-              {activeTab === "revenue" ? "Track your earnings" : "Manage your checkout pages"}
+              {activeTab === "revenue" ? "Track your earnings" : activeTab === "referrals" ? "Earn by referring creators" : "Manage your checkout pages"}
             </p>
             </div>
           </div>
@@ -1013,6 +1034,30 @@ function DashboardContent() {
                 }}>PRO</span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab("referrals")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "9px 18px",
+                borderRadius: 9,
+                border: "none",
+                background: activeTab === "referrals" ? "var(--surface)" : "transparent",
+                color: activeTab === "referrals" ? "var(--foreground)" : "var(--muted)",
+                fontWeight: 600,
+                fontSize: "0.84rem",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                boxShadow: activeTab === "referrals" ? "var(--shadow-sm)" : "none",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6" /><path d="M23 11h-6" />
+              </svg>
+              Referrals
+            </button>
           </div>
 
           {/* Revenue Tab */}
@@ -1209,6 +1254,200 @@ function DashboardContent() {
                 </div>
               ) : (
                 <RevenuePanel revenueData={revenueData} isMobile={isMobile} pages={pages} />
+              )}
+            </div>
+          )}
+
+          {/* Referrals Tab */}
+          {activeTab === "referrals" && (
+            <div>
+              {referralLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* Referral Link Card */}
+                  <div style={{
+                    padding: 24,
+                    borderRadius: 16,
+                    background: "linear-gradient(135deg, rgba(34,197,94,0.06), rgba(6,95,70,0.06))",
+                    border: "1px solid rgba(34,197,94,0.15)",
+                    marginBottom: 20,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <div style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        background: "rgba(34,197,94,0.12)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0 }}>Your Referral Link</h3>
+                        <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0 }}>Share this link to earn 10% commission on platform fees</p>
+                      </div>
+                    </div>
+                    <div style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                    }}>
+                      <div style={{
+                        flex: 1,
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        fontSize: "0.84rem",
+                        color: "var(--foreground)",
+                        fontFamily: "var(--font-geist-mono)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {referralData?.referralCode
+                          ? `https://pay-gate.dev/?ref=${referralData.referralCode}`
+                          : "Loading..."}
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (referralData?.referralCode) {
+                            navigator.clipboard.writeText(`https://pay-gate.dev/?ref=${referralData.referralCode}`);
+                            setReferralCopied(true);
+                            setTimeout(() => setReferralCopied(false), 2000);
+                          }
+                        }}
+                        style={{
+                          padding: "10px 18px",
+                          borderRadius: 10,
+                          border: "none",
+                          background: referralCopied ? "#22c55e" : "var(--primary)",
+                          color: "white",
+                          fontWeight: 600,
+                          fontSize: "0.84rem",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.15s",
+                          whiteSpace: "nowrap",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        {referralCopied ? (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                            </svg>
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+                    gap: 12,
+                    marginBottom: 20,
+                  }}>
+                    {[
+                      {
+                        label: "Referred Users",
+                        value: referralData?.referredUsers || 0,
+                        icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2",
+                        color: "#3b82f6",
+                      },
+                      {
+                        label: "Total Earned",
+                        value: `$${((referralData?.totalEarned || 0) / 100).toFixed(2)}`,
+                        icon: "M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+                        color: "#22c55e",
+                      },
+                      {
+                        label: "Pending",
+                        value: `$${((referralData?.pendingEarned || 0) / 100).toFixed(2)}`,
+                        icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+                        color: "#f59e0b",
+                      },
+                    ].map((stat) => (
+                      <div key={stat.label} style={{
+                        padding: 20,
+                        borderRadius: 14,
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stat.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
+                            <path d={stat.icon} />
+                          </svg>
+                          <span style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 500 }}>{stat.label}</span>
+                        </div>
+                        <div style={{ fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
+                          {stat.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* How it works */}
+                  <div style={{
+                    padding: 24,
+                    borderRadius: 16,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}>
+                    <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: 16, margin: "0 0 16px" }}>How Referrals Work</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      {[
+                        { step: "1", title: "Share your link", desc: "Send your unique referral link to creators and sellers" },
+                        { step: "2", title: "They sign up", desc: "When someone signs up through your link, they're tracked as your referral" },
+                        { step: "3", title: "Earn commissions", desc: "You earn 10% of the platform fee on every transaction from your referrals" },
+                      ].map((item) => (
+                        <div key={item.step} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            background: "rgba(34,197,94,0.1)",
+                            color: "#22c55e",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: "0.78rem",
+                            flexShrink: 0,
+                          }}>
+                            {item.step}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 600, marginBottom: 2 }}>{item.title}</div>
+                            <div style={{ fontSize: "0.8rem", color: "var(--muted)", lineHeight: 1.4 }}>{item.desc}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}

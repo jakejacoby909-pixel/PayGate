@@ -63,7 +63,7 @@ export default function AuthProvider({ children }) {
     });
 
     // Listen for auth changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((eventType, session) => {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
@@ -71,6 +71,10 @@ export default function AuthProvider({ children }) {
           setPlan("pro");
         } else {
           fetchPlan(u.id);
+        }
+        // On new signup, save referral if one was captured
+        if (eventType === "SIGNED_IN") {
+          saveReferral(u.id);
         }
       } else {
         setPlan("free");
@@ -87,6 +91,21 @@ export default function AuthProvider({ children }) {
       router.replace(`/login?redirect=${pathname}`);
     }
   }, [user, loading, pathname, router]);
+
+  async function saveReferral(userId) {
+    try {
+      const ref = localStorage.getItem("paygate_ref");
+      if (!ref) return;
+      await fetch("/api/referrals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, referralCode: ref }),
+      });
+      localStorage.removeItem("paygate_ref");
+    } catch {
+      // Referral save is best-effort
+    }
+  }
 
   async function fetchPlan(userId) {
     const supabase = getSupabaseBrowser();

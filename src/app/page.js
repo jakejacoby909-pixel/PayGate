@@ -5,6 +5,7 @@ import LandingNav from "@/components/LandingNav";
 import HeroEffects from "@/components/HeroEffects";
 import InteractiveDemo from "@/components/InteractiveDemo";
 import FAQ from "@/components/FAQ";
+import ReferralCapture from "@/components/ReferralCapture";
 
 const FEATURES = [
   {
@@ -123,6 +124,7 @@ const jsonLd = [
 export default function LandingPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)", position: "relative" }}>
+      <ReferralCapture />
       {/* JSON-LD Structured Data */}
       {jsonLd.map((schema, i) => (
         <script

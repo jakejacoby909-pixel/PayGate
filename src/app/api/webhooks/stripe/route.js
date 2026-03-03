@@ -108,7 +108,7 @@ export async function POST(request) {
 
       const platformFee = Math.round(amount * feePercent);
 
-      const { error: insertError } = await supabase.from("transactions").insert({
+      const { data: txData, error: insertError } = await supabase.from("transactions").insert({
         stripe_session_id: session.id,
         customer_email: customerEmail,
         product_name: productName,
@@ -117,11 +117,49 @@ export async function POST(request) {
         platform_fee: platformFee,
         currency: currency,
         status: "completed",
-      });
+      }).select("id").single();
 
       if (insertError) {
         console.error("Failed to insert transaction:", insertError);
         return NextResponse.json({ error: "Failed to record transaction" }, { status: 500 });
+      }
+
+      // Track referral commission if page owner was referred
+      if (pageOwnerId && txData?.id) {
+        try {
+          const { data: ownerProfile } = await supabase
+            .from("profiles")
+            .select("referred_by")
+            .eq("id", pageOwnerId)
+            .single();
+
+          if (ownerProfile?.referred_by) {
+            // Find the referrer
+            const { data: referrer } = await supabase
+              .from("profiles")
+              .select("id")
+              .eq("referral_code", ownerProfile.referred_by)
+              .single();
+
+            if (referrer) {
+              const commissionRate = 0.10; // 10% of platform fee
+              const commission = Math.round(platformFee * commissionRate);
+
+              await supabase.from("referral_commissions").insert({
+                referrer_id: referrer.id,
+                referred_id: pageOwnerId,
+                transaction_id: txData.id,
+                amount: amount,
+                commission: commission,
+                commission_rate: commissionRate,
+                status: "pending",
+              });
+            }
+          }
+        } catch (refErr) {
+          console.error("Referral commission tracking error:", refErr);
+          // Non-fatal — don't fail the webhook for referral tracking
+        }
       }
     }
 
