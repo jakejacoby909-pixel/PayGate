@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
 import { ToastProvider, useToast } from "@/components/Toast";
 import ShareModal from "@/components/ShareModal";
@@ -551,6 +551,28 @@ function DashboardContent() {
   const [referralData, setReferralData] = useState(null);
   const [referralLoading, setReferralLoading] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Handle Stripe Connect redirect query params
+  useEffect(() => {
+    const connectParam = searchParams.get("connect");
+    if (!connectParam) return;
+    switch (connectParam) {
+      case "success":
+        toast.success("Stripe connected! You can now receive payments.");
+        break;
+      case "pending":
+        toast.warning("Almost there — finish the remaining steps to start receiving payments.");
+        break;
+      case "error":
+        toast.error("Something went wrong connecting Stripe. Please try again.");
+        break;
+      case "refresh":
+        toast.info("Your onboarding session expired. Click the button below to continue.");
+        break;
+    }
+    router.replace("/dashboard");
+  }, [searchParams]);
 
   useEffect(() => {
     const check = () => {
@@ -912,8 +934,8 @@ function DashboardContent() {
                 </div>
                 <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
                   {connectStatus === "pending"
-                    ? "Your Stripe account setup is incomplete. Please finish onboarding to receive payments."
-                    : "Connect your Stripe account to receive payments from your checkout pages."}
+                    ? "Almost done. Complete the remaining verification steps to start receiving payments."
+                    : "Link your Stripe account so customers can pay you directly. Takes ~2 minutes — you'll need bank details and basic business info."}
                 </div>
               </div>
               <button
@@ -936,6 +958,44 @@ function DashboardContent() {
                   <>{connectStatus === "pending" ? "Complete Setup" : "Connect Stripe"}</>
                 )}
               </button>
+              {connectStatus === "pending" && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("This will restart your Stripe onboarding from scratch. Continue?")) return;
+                    setConnectLoading(true);
+                    try {
+                      const res = await fetch("/api/connect", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ force: true }),
+                      });
+                      const data = await res.json();
+                      if (data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        toast.error(data.error || "Failed to restart onboarding");
+                        setConnectLoading(false);
+                      }
+                    } catch {
+                      toast.error("Failed to restart onboarding");
+                      setConnectLoading(false);
+                    }
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--muted)",
+                    fontSize: "0.78rem",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    padding: "4px 0",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Having trouble? Start over
+                </button>
+              )}
             </div>
           )}
           {connectStatus === "connected" && (
@@ -1815,7 +1875,9 @@ function DashboardContent() {
 export default function DashboardPage() {
   return (
     <ToastProvider>
-      <DashboardContent />
+      <Suspense>
+        <DashboardContent />
+      </Suspense>
     </ToastProvider>
   );
 }

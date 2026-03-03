@@ -59,12 +59,37 @@ export default function LandingNav() {
             </div>
             <span style={{ fontWeight: 800, fontSize: "1.15rem", letterSpacing: "-0.02em" }}>PayGate</span>
           </div>
-          {/* Hamburger - mobile only */}
-          <button className="nav-hamburger" onClick={() => setMobileMenuOpen(true)}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+          {/* Mobile actions: avatar + hamburger */}
+          <div className="nav-mobile-actions">
+            {!loading && user && (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  border: "1.5px solid rgba(255,255,255,0.1)",
+                  background: "linear-gradient(135deg, rgba(22,163,74,0.15), rgba(6,95,70,0.15))",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  fontFamily: "inherit",
+                  padding: 0,
+                }}
+              >
+                {(user.email || "U")[0].toUpperCase()}
+              </button>
+            )}
+            <button className="nav-hamburger" onClick={() => setMobileMenuOpen(true)}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          </div>
 
           {/* Desktop nav links */}
           <div className="nav-desktop-links" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -280,51 +305,52 @@ export default function LandingNav() {
             </svg>
           </button>
 
-          {/* User info when logged in */}
-          {!loading && user && (
-            <div onClick={(e) => e.stopPropagation()} style={{
-              textAlign: "center",
-              marginBottom: 16,
-              padding: "0 20px",
-            }}>
+          <div className="mobile-nav-card" onClick={(e) => e.stopPropagation()}>
+            {/* User info when logged in */}
+            {!loading && user && (
               <div style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(22,163,74,0.3), rgba(6,95,70,0.3))",
-                border: "1.5px solid rgba(22,163,74,0.3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 10px",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: "1.1rem",
+                textAlign: "center",
+                paddingBottom: 16,
+                marginBottom: 8,
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
               }}>
-                {(user.email || "U")[0].toUpperCase()}
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(22,163,74,0.3), rgba(6,95,70,0.3))",
+                  border: "1.5px solid rgba(22,163,74,0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 10px",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "1.1rem",
+                }}>
+                  {(user.email || "U")[0].toUpperCase()}
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", marginBottom: 2 }}>
+                  {user.email}
+                </div>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.65rem",
+                  fontWeight: 700,
+                  padding: "3px 10px",
+                  borderRadius: 6,
+                  background: isPro ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.06)",
+                  color: isPro ? "#a78bfa" : "rgba(255,255,255,0.4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}>
+                  {isPro ? "Pro Plan" : "Free Plan"}
+                </div>
               </div>
-              <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", marginBottom: 2 }}>
-                {user.email}
-              </div>
-              <div style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                padding: "3px 10px",
-                borderRadius: 6,
-                background: isPro ? "rgba(139,92,246,0.15)" : "rgba(255,255,255,0.06)",
-                color: isPro ? "#a78bfa" : "rgba(255,255,255,0.4)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}>
-                {isPro ? "Pro Plan" : "Free Plan"}
-              </div>
-            </div>
-          )}
+            )}
 
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 220 }}>
             {!loading && user && isAdmin(user) && (
               <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>Admin</Link>
             )}
