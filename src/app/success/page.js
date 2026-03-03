@@ -247,6 +247,60 @@ function SuccessContent() {
           </Link>
         </div>
 
+        {/* Referral CTA */}
+        <div
+          style={{
+            marginTop: 28,
+            padding: "18px 22px",
+            borderRadius: 14,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            textAlign: "left",
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            opacity: step >= 4 ? 1 : 0,
+            transform: step >= 4 ? "translateY(0)" : "translateY(12px)",
+            transition: "all 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s",
+          }}
+        >
+          <div style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            background: "rgba(34,197,94,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="22" y1="11" x2="16" y2="11" />
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 2px" }}>Know other creators?</p>
+            <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0, lineHeight: 1.4 }}>
+              Earn 10% commission on every sale they make through PayGate.
+            </p>
+          </div>
+          <Link
+            href="/dashboard?tab=referrals"
+            style={{
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              color: "var(--primary)",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Start Earning &rarr;
+          </Link>
+        </div>
+
         {/* Security note */}
         <div
           style={{

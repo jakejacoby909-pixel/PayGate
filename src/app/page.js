@@ -645,7 +645,7 @@ export default function LandingPage() {
               </svg>
             </Link>
             <p style={{ fontSize: "0.82rem", color: "var(--muted-light)", marginTop: 16 }}>
-              No credit card required &middot; Free forever
+              No credit card required &middot; Free forever &middot; Earn by referring creators
             </p>
           </div>
         </ScrollReveal>

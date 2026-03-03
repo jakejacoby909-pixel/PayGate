@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { id: "create", label: "Create Page", href: "/builder", icon: "M12 5v14M5 12h14", accent: true },
 ];
 
-function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen, isMobile }) {
+function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen, isMobile, activeTab, setActiveTab }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
@@ -174,6 +174,55 @@ function Sidebar({ user, onSignOut, sidebarOpen, setSidebarOpen, isMobile }) {
               Admin
             </Link>
           )}
+
+          {/* Earn & Refer button */}
+          <button
+            onClick={() => {
+              setActiveTab("referrals");
+              if (isMobile) setSidebarOpen(false);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "10px 14px",
+              borderRadius: 10,
+              fontSize: "0.88rem",
+              fontWeight: activeTab === "referrals" ? 600 : 500,
+              color: activeTab === "referrals" ? "var(--foreground)" : "#16a34a",
+              background: activeTab === "referrals" ? "rgba(34,197,94,0.1)" : "rgba(34,197,94,0.04)",
+              border: activeTab === "referrals" ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(34,197,94,0.12)",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.2s ease",
+              marginTop: 12,
+              width: "100%",
+              textAlign: "left",
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateX(0)" : "translateX(-12px)",
+              transitionDelay: "390ms",
+            }}
+          >
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: activeTab === "referrals" ? "#16a34a" : "rgba(34,197,94,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              transition: "all 0.2s ease",
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={activeTab === "referrals" ? "white" : "#16a34a"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="19" y1="8" x2="19" y2="14" />
+                <line x1="22" y1="11" x2="16" y2="11" />
+              </svg>
+            </div>
+            Earn & Refer
+          </button>
         </nav>
 
         {/* User section */}
@@ -574,6 +623,14 @@ function DashboardContent() {
     router.replace("/dashboard");
   }, [searchParams]);
 
+  // Handle ?tab= query param (e.g. from success page referral CTA)
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "referrals" || tabParam === "revenue" || tabParam === "pages") {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
   useEffect(() => {
     const check = () => {
       const mobile = window.innerWidth <= 768;
@@ -791,6 +848,8 @@ function DashboardContent() {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         isMobile={isMobile}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
 
       {/* Main Content */}
@@ -1329,99 +1388,151 @@ function DashboardContent() {
                 </div>
               ) : (
                 <>
-                  {/* Referral Link Card */}
-                  <div style={{
-                    padding: 24,
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg, rgba(34,197,94,0.06), rgba(6,95,70,0.06))",
-                    border: "1px solid rgba(34,197,94,0.15)",
-                    marginBottom: 20,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  {/* Referral Link Card — gated behind Stripe Connect */}
+                  {connectStatus === "connected" ? (
+                    <div style={{
+                      padding: 24,
+                      borderRadius: 16,
+                      background: "linear-gradient(135deg, rgba(34,197,94,0.06), rgba(6,95,70,0.06))",
+                      border: "1px solid rgba(34,197,94,0.15)",
+                      marginBottom: 20,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                        <div style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          background: "rgba(34,197,94,0.12)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0 }}>Your Referral Link</h3>
+                          <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0 }}>Share this link to earn 10% commission on platform fees</p>
+                        </div>
+                      </div>
                       <div style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 12,
-                        background: "rgba(34,197,94,0.12)",
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                      }}>
+                        <div style={{
+                          flex: 1,
+                          padding: "10px 14px",
+                          borderRadius: 10,
+                          background: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          fontSize: "0.84rem",
+                          color: "var(--foreground)",
+                          fontFamily: "var(--font-geist-mono)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {referralData?.referralCode
+                            ? `https://pay-gate.dev/?ref=${referralData.referralCode}`
+                            : "Loading..."}
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (referralData?.referralCode) {
+                              navigator.clipboard.writeText(`https://pay-gate.dev/?ref=${referralData.referralCode}`);
+                              setReferralCopied(true);
+                              setTimeout(() => setReferralCopied(false), 2000);
+                            }
+                          }}
+                          style={{
+                            padding: "10px 18px",
+                            borderRadius: 10,
+                            border: "none",
+                            background: referralCopied ? "#22c55e" : "var(--primary)",
+                            color: "white",
+                            fontWeight: 600,
+                            fontSize: "0.84rem",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            transition: "all 0.15s",
+                            whiteSpace: "nowrap",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {referralCopied ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                              </svg>
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: 24,
+                      borderRadius: 16,
+                      background: "linear-gradient(135deg, rgba(59,130,246,0.06), rgba(37,99,235,0.04))",
+                      border: "1px solid rgba(59,130,246,0.15)",
+                      marginBottom: 20,
+                      textAlign: "center",
+                    }}>
+                      <div style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 14,
+                        background: "rgba(59,130,246,0.1)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        margin: "0 auto 14px",
                       }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                           <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                         </svg>
                       </div>
-                      <div>
-                        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0 }}>Your Referral Link</h3>
-                        <p style={{ fontSize: "0.78rem", color: "var(--muted)", margin: 0 }}>Share this link to earn 10% commission on platform fees</p>
-                      </div>
-                    </div>
-                    <div style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                    }}>
-                      <div style={{
-                        flex: 1,
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        fontSize: "0.84rem",
-                        color: "var(--foreground)",
-                        fontFamily: "var(--font-geist-mono)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>
-                        {referralData?.referralCode
-                          ? `https://pay-gate.dev/?ref=${referralData.referralCode}`
-                          : "Loading..."}
-                      </div>
+                      <h3 style={{ fontSize: "1.05rem", fontWeight: 700, margin: "0 0 6px" }}>Unlock Your Referral Link</h3>
+                      <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: "0 0 18px", lineHeight: 1.5 }}>
+                        Connect your Stripe account to get your unique referral link and start earning 10% commission.
+                      </p>
                       <button
-                        onClick={() => {
-                          if (referralData?.referralCode) {
-                            navigator.clipboard.writeText(`https://pay-gate.dev/?ref=${referralData.referralCode}`);
-                            setReferralCopied(true);
-                            setTimeout(() => setReferralCopied(false), 2000);
-                          }
-                        }}
+                        onClick={handleConnectStripe}
+                        className="btn-primary ripple-btn"
                         style={{
-                          padding: "10px 18px",
-                          borderRadius: 10,
+                          padding: "10px 24px",
+                          fontSize: "0.88rem",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
                           border: "none",
-                          background: referralCopied ? "#22c55e" : "var(--primary)",
-                          color: "white",
-                          fontWeight: 600,
-                          fontSize: "0.84rem",
                           cursor: "pointer",
                           fontFamily: "inherit",
-                          transition: "all 0.15s",
-                          whiteSpace: "nowrap",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
                         }}
                       >
-                        {referralCopied ? (
-                          <>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                            </svg>
-                            Copy
-                          </>
-                        )}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 4h10l4 4v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                          <path d="M14 2v4h4" />
+                          <path d="M12 18v-6" /><path d="M9 15l3-3 3 3" />
+                        </svg>
+                        Connect Stripe
                       </button>
                     </div>
-                  </div>
+                  )}
 
                   {/* Stats Grid */}
                   <div style={{
