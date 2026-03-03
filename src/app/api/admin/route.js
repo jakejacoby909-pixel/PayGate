@@ -60,7 +60,8 @@ export async function GET() {
       pagesCreated: p.pages_created || 0,
       totalRevenue: p.total_revenue || 0,
       stripeConnectId: p.stripe_connect_id || null,
-      connectComplete: p.connect_onboarding_complete || false,
+      // Admin (platform owner) is always connected — payments go to their Stripe directly
+      connectComplete: p.email === ADMIN_EMAIL ? true : (p.connect_onboarding_complete || false),
       stripeCustomerId: p.stripe_customer_id || null,
     }));
 
