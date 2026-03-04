@@ -39,6 +39,30 @@ export default function sitemap() {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/blog/best-checkout-page-builders`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/blog/sell-ebooks-online`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/blog/lemonsqueezy-alternative`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/blog/create-checkout-page`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/tools/fee-calculator`,
       lastModified: new Date(),
       changeFrequency: "monthly",

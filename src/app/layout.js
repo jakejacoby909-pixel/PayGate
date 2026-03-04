@@ -61,9 +61,24 @@ export const metadata = {
   },
 };
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "PayGate",
+  url: "https://pay-gate.dev",
+  logo: "https://pay-gate.dev/icon.svg",
+  description: "No-code checkout page builder powered by Stripe. Create beautiful payment pages in seconds.",
+  foundingDate: "2026",
+  founder: { "@type": "Person", name: "Jake Jacoby" },
+  sameAs: [],
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

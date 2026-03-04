@@ -8,9 +8,17 @@ export const metadata = {
     "stripe checkout pricing",
     "payment page builder cost",
     "cheap payment links",
+    "gumroad alternative pricing",
+    "payhip alternative pricing",
+    "sell digital products free",
   ],
   alternates: {
     canonical: "https://pay-gate.dev/pricing",
+  },
+  openGraph: {
+    title: "Pricing — PayGate | Free Checkout Page Builder",
+    description: "Free plan with 5% fees, or Pro at $12/month with 2% fees. All features included. No credit card required.",
+    url: "https://pay-gate.dev/pricing",
   },
 };
 

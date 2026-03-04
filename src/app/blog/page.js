@@ -12,6 +12,40 @@ export const metadata = {
 
 const POSTS = [
   {
+    slug: "create-checkout-page",
+    title: "How to Create a Checkout Page for Free in 2026 (Step-by-Step)",
+    description: "A complete tutorial on building a professional checkout page with Stripe payments. No coding required — go from zero to live in 60 seconds.",
+    date: "March 3, 2026",
+    tag: "Tutorial",
+    tagColor: "#3b82f6",
+    readTime: "6 min read",
+  },
+  {
+    slug: "best-checkout-page-builders",
+    title: "7 Best Free Checkout Page Builders in 2026 (Compared)",
+    description: "An honest comparison of PayGate, Gumroad, Payhip, Lemon Squeezy, Checkout Page, Ko-fi, and Sellfy. Fees, features, and who each tool is best for.",
+    date: "March 3, 2026",
+    tag: "Comparison",
+    readTime: "7 min read",
+  },
+  {
+    slug: "sell-ebooks-online",
+    title: "How to Sell Ebooks Online Without Gumroad (2026 Guide)",
+    description: "Step-by-step guide to selling your ebook with lower fees and more control. Compare costs across platforms and set up your checkout page in minutes.",
+    date: "March 3, 2026",
+    tag: "Guide",
+    tagColor: "#d97706",
+    readTime: "6 min read",
+  },
+  {
+    slug: "lemonsqueezy-alternative",
+    title: "PayGate vs Lemon Squeezy: Which Is Better for Digital Creators?",
+    description: "Lemon Squeezy was acquired by Stripe. Compare fees, features, and approaches — MoR vs direct Stripe payments.",
+    date: "March 3, 2026",
+    tag: "Comparison",
+    readTime: "5 min read",
+  },
+  {
     slug: "sell-digital-products",
     title: "How to Sell Digital Products Online in 2026 (Step-by-Step)",
     description: "From choosing your product to getting your first sale. A free, comprehensive guide to building a digital product business.",
