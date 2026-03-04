@@ -57,10 +57,10 @@ export default function PageTransition({ children }) {
       <div
         style={{
           opacity: phase === "leaving" ? 0 : 1,
-          transform: phase === "leaving" ? "translateY(6px)" : phase === "entering" ? "translateY(0)" : "translateY(0)",
-          transition: phase === "leaving"
-            ? "opacity 0.15s ease-out, transform 0.15s ease-out"
-            : "opacity 0.3s ease-out, transform 0.3s ease-out",
+          transform: phase === "leaving" ? "translateY(6px)" : phase === "entering" ? "translateY(0)" : undefined,
+          transition: phase !== "idle"
+            ? "opacity 0.3s ease-out, transform 0.3s ease-out"
+            : undefined,
           minHeight: "100vh",
         }}
       >
